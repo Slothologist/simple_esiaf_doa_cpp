@@ -98,9 +98,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(BEFORE ${Boost_INCLUDE_DIRS})
-include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${DLIB_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
-link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${DLIB_LIBRARY_DIRS} ${OpenCV_LIBRARIES})
+link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${dlib_LIBRARIES} ${OpenCV_LIBRARIES})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") #-std=c++0x
 
@@ -122,7 +122,7 @@ target_link_libraries(simple_robot_gaze_tools
                         ${catkin_LIBRARIES}
                         ${YAMLCPP_LIBRARIES}
                         ${NMPT_LIBRARIES}
-                        ${DLIB_LIBRARY_DIRS}
+                        ${dlib_LIBRARIES}
                         ${OpenCV_LIBRARIES}
 )
 
