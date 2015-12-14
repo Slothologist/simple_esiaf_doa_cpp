@@ -3,22 +3,20 @@ project(simple_robot_gaze_tools)
 
 set(ENV{ROS_LANG_DISABLE} "genjava")
 
+INCLUDE(FindPkgConfig)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin COMPONENTS roscpp std_msgs sensor_msgs message_generation genmsg actionlib actionlib_msgs)	
-
-#find_package(YamlCpp REQUIRED)
-INCLUDE(FindPkgConfig)
-PKG_CHECK_MODULES(YAMLCPP REQUIRED yaml-cpp>=0.5)
-
-## System dependencies are found with CMake's conventions
+find_package(dlib REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
+PKG_CHECK_MODULES(YAMLCPP REQUIRED yaml-cpp>=0.5)
+PKG_CHECK_MODULES(NMPT REQUIRED nmpt>=0.7)
 
-set(ROS_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE DEBUG)
+SET(ROS_BUILD_TYPE Debug)
+SET(CMAKE_BUILD_TYPE DEBUG)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -57,11 +55,11 @@ set(CMAKE_BUILD_TYPE DEBUG)
 
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-	DEPENDENCIES
-	std_msgs
-
-)
+#generate_messages(
+#	DEPENDENCIES
+#	std_msgs
+#
+#)
 
 #
 ###################################
@@ -93,7 +91,7 @@ link_directories (${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
-#unfortuantely this is necessary for my ide (qt-creator) to resolve dependencies...
+# Unfortuantely this is necessary for my ide (qt-creator) to resolve dependencies...
 file(GLOB DUMMY_HEADER_LIST RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} include/*.h src/*.h srv/*.srv msg/*.msg etc/*)
 
 add_executable(simple_robot_gaze_tools
@@ -102,7 +100,7 @@ add_executable(simple_robot_gaze_tools
 )
 
 ## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
+## As an example, message headers may need to be generated before nodes
 add_dependencies(simple_robot_gaze_tools ${catkin_EXPORTED_TARGETS} simple_robot_gaze_tools_gencpp)
 
 target_link_libraries(simple_robot_gaze_tools
@@ -147,7 +145,7 @@ install(DIRECTORY include/simple_robot_gaze_tools
       PATTERN ".git" EXCLUDE
 )
 
-#config files
+# Config files
  install(DIRECTORY etc/
    DESTINATION ${CATKIN_PACKAGE_ETC_DESTINATION}
    FILES_MATCHING
