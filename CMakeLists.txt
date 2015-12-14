@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(simple_robot_gaze_tools)
 
-set(ENV{ROS_LANG_DISABLE} "genjava")
+SET(ENV{ROS_LANG_DISABLE} "genjava")
 
 INCLUDE(FindPkgConfig)
 
@@ -85,9 +85,9 @@ catkin_package(
 include_directories(BEFORE ${Boost_INCLUDE_DIRS}) ## . ${REFLEXXES_INCLUDE_DIRS})
 include_directories(include)
 include_directories(include/simple_robot_gaze_tools)
-include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS})
 
-link_directories (${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS})
+link_directories (${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
@@ -107,6 +107,7 @@ target_link_libraries(simple_robot_gaze_tools
 			${Boost_LIBRARIES}
 			${catkin_LIBRARIES}
 			${YAMLCPP_LIBRARIES}
+                        ${NMPT_LIBRARIES}
 )
 
 set_property(TARGET simple_robot_gaze_tools PROPERTY INSTALL_RPATH_USE_LINK_PATH TRUE)
