@@ -30,7 +30,9 @@
 # CMake
 build
 
-#QTCreator
+# QTCreator
 *.txt.user
 *.creator
 
+# Stupid Gedit
+*~
