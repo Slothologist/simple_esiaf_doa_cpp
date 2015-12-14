@@ -13,10 +13,10 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <sstream>
-#include "<BlockTimer.h>"
-#include "<FastSalience.h>"
-#include "<LQRPointTracker.h>"
-#include "<NMPTUtils.h>"
+#include <nmpt/BlockTimer.h>
+#include <nmpt/FastSalience.h>
+#include <nmpt/LQRPointTracker.h>
+#include <nmpt/NMPTUtils.h>
 
 using namespace std;
 using namespace cv;
