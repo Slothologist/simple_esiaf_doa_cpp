@@ -3,25 +3,21 @@ project(simple_robot_gaze_tools)
 
 SET(ENV{ROS_LANG_DISABLE} "genjava")
 
-INCLUDE(FindPkgConfig)
+FIND_PACKAGE(catkin COMPONENTS roscpp std_msgs sensor_msgs)
+FIND_PACKAGE(dlib REQUIRED)
+FIND_PACKAGE(nmpt 0.7 REQUIRED)
+FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin COMPONENTS roscpp std_msgs sensor_msgs)
-find_package(dlib REQUIRED)
-find_package(nmpt 0.7 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system)
 
-# OpenCV
 SET(OpenCV_MIN_VERSION "2.3.1")
-find_path(OpenCV_DIR NAMES opencv-config.cmake OpenCVConfig.cmake PATH_SUFFIXES lib/cmake lib)
+FIND_PATH(OpenCV_DIR NAMES opencv-config.cmake OpenCVConfig.cmake PATH_SUFFIXES lib/cmake lib)
 FIND_PACKAGE( OpenCV REQUIRED COMPONENTS core contrib features2d imgproc legacy objdetect video highgui)
+
 IF(OpenCV_FOUND)
         IF(${OpenCV_VERSION} VERSION_LESS ${OpenCV_MIN_VERSION} AND (SUPPORT_VIDEO OR SUPPORT_IMAGE) )
                 MESSAGE(FATAL_ERROR "OpenCV version (${OpenCV_VERSION} is present, while ${OpenCV_MIN_VERSION}+ is required")
         ENDIF()
-        INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
+        include_directories(${OpenCV_INCLUDE_DIRS})
         MESSAGE("Found OpenCV ${OpenCV_VERSION} libraries ${OpenCV_LIBRARIES} and headers ${OpenCV_INCLUDE_DIRS}")
         IF(${OpenCV_VERSION_MAJOR} MATCHES 2 AND ${OpenCV_VERSION_MINOR} MATCHES 2)
                 ADD_DEFINITIONS(-DUSE_OPENCV22)
@@ -104,7 +100,7 @@ catkin_package(
 include_directories(BEFORE ${Boost_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${DLIB_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
-link_directories (${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${DLIB_LIBRARY_DIRS} ${OpenCV_LIBRARIES})
+link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${DLIB_LIBRARY_DIRS} ${OpenCV_LIBRARIES})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") #-std=c++0x
 
