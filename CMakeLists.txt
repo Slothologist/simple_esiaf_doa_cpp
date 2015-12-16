@@ -6,7 +6,7 @@ SET(ENV{ROS_LANG_DISABLE} "genjava")
 FIND_PACKAGE(catkin COMPONENTS roscpp std_msgs sensor_msgs)
 FIND_PACKAGE(dlib REQUIRED)
 FIND_PACKAGE(nmpt 0.7 REQUIRED)
-FIND_PACKAGE(Boost REQUIRED COMPONENTS system)
+FIND_PACKAGE(Boost REQUIRED COMPONENTS system program_options)
 
 
 SET(OpenCV_MIN_VERSION "2.3.1")
@@ -102,7 +102,7 @@ include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUD
 
 link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${dlib_LIBRARIES} ${OpenCV_LIBRARIES})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") #-std=c++0x
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # Unfortuantely this is necessary for my ide (qt-creator) to resolve dependencies...
 file(GLOB DUMMY_HEADER_LIST RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} include/*.hpp src/*.hpp)
@@ -112,6 +112,11 @@ add_executable(simple_robot_gaze_tools
                         src/main.hpp
 			${DUMMY_HEADER_LIST}
 )
+
+#add_executable(dlib_example
+#                        src/dlib_example.cpp
+#                        ${DUMMY_HEADER_LIST}
+#)
 
 ## Add cmake target dependencies of the executable/library
 ## As an example, message headers may need to be generated before nodes
@@ -126,8 +131,21 @@ target_link_libraries(simple_robot_gaze_tools
                         ${OpenCV_LIBRARIES}
 )
 
+#target_link_libraries(dlib_example
+#                        ${Boost_LIBRARIES}
+#                        ${catkin_LIBRARIES}
+#                        ${YAMLCPP_LIBRARIES}
+#                        ${NMPT_LIBRARIES}
+#                        ${dlib_LIBRARIES}
+#                        ${OpenCV_LIBRARIES}
+#)
+
+
 set_property(TARGET simple_robot_gaze_tools PROPERTY INSTALL_RPATH_USE_LINK_PATH TRUE)
 set_target_properties(simple_robot_gaze_tools PROPERTIES COMPILE_FLAGS -DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
+
+#set_property(TARGET dlib_example PROPERTY INSTALL_RPATH_USE_LINK_PATH TRUE)
+#set_target_properties(dlib_example PROPERTIES COMPILE_FLAGS -DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 
 
 #############
