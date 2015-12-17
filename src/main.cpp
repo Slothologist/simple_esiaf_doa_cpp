@@ -8,27 +8,33 @@
  *
  */
 
+
+// CV
 #include <opencv2/opencv.hpp>
 
 #include <iostream>
 #include <sstream>
 #include <thread>
 
+// Boost
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/token_functions.hpp>
 
+// NMPT
 #include <nmpt/BlockTimer.h>
 #include <nmpt/FastSalience.h>
 #include <nmpt/LQRPointTracker.h>
 #include <nmpt/NMPTUtils.h>
 
+// ROS
 #include "ros/ros.h"
 #include "sensor_msgs/RegionOfInterest.h"
 #include "people_msgs/People.h"
 
+// DLIB
 #include <dlib/opencv.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <dlib/image_processing/frontal_face_detector.h>
@@ -36,32 +42,40 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-
 using namespace std;
 using namespace cv;
 using namespace boost;
 using namespace boost::program_options;
 
+// Find Faces and Publish
 class Faces
 {
     public:
       Faces();
       ~Faces();
       void getFaces(cv::Mat img);
-      void setPath(String path);
+      void setPath(String path, bool _vis);
 
     protected:
       // DLIB
       dlib::frontal_face_detector detector;
       dlib::shape_predictor pose_model;
       dlib::image_window win;
+      // ROS
+      ros::NodeHandle n;
+      ros::Publisher pub_f;
+      // SELF
+      bool viz;
 };
 
-Faces::Faces(){}
+Faces::Faces(){
+    this->pub_f = n.advertise<people_msgs::People>("robotgazetools/faces", 10);
+}
 Faces::~Faces(){}
 
-void Faces::setPath(String path)
+void Faces::setPath(String path, bool _vis)
 {
+    viz = _vis;
     detector = dlib::get_frontal_face_detector();
     try {
         dlib::deserialize(path) >> pose_model;
@@ -84,17 +98,146 @@ void Faces::getFaces(cv::Mat _img)
     for (unsigned long i = 0; i < faces.size(); ++i) {
         shapes.push_back(pose_model(cimg, faces[i]));
     }
+    people_msgs::People people_msg;
+    people_msgs::Person person_msg;
+    for(unsigned long i = 0; i < faces.size(); ++i) {
+        // cout << "left: " << faces[i].left() << " top: " << faces[i].top() << endl;
+        // cout << "right: " << faces[i].right() << " bottom: " << faces[i].bottom() << endl;
+        person_msg.name = "unkown";
+        person_msg.reliability = 0.0;
+        geometry_msgs::Point p;
+        double mid_x = (faces[i].left() + faces[i].right())/2.0;
+        double mid_y = (faces[i].top() + faces[i].bottom())/2.0;
+        p.x = mid_x;
+        p.y = mid_y;
+        p.z = faces[i].right() - faces[i].left();
+        person_msg.position = p;
+        people_msg.people.push_back(person_msg);
+    }
+    if(people_msg.people.size() > 0){
+        pub_f.publish(people_msg);
+    }
     // Display it all on the screen
-    win.clear_overlay();
-    win.set_image(cimg);
-    win.add_overlay(render_face_detections(shapes));
+    if (viz) {
+        win.clear_overlay();
+        win.set_image(cimg);
+        win.add_overlay(render_face_detections(shapes));
+    }
+}
+
+// Find Most Salient Point and Publish
+class Saliency
+{
+    public:
+      Saliency();
+      ~Saliency();
+      void getSaliency(cv::Mat img);
+      void setup(int camera, bool _vis);
+    protected:
+      // DLIB
+      BlockTimer bt;
+      FastSalience salTracker;
+      cv::Mat viz, sal;
+      int usingCamera;
+      vector<double> lqrpt{2,.5};
+      LQRPointTracker salientSpot{2};
+      // ROS
+      ros::NodeHandle n;
+      ros::Publisher pub_s;
+      // SELF
+      bool vizu;
+
+};
+
+Saliency::Saliency() {
+    pub_s = n.advertise<sensor_msgs::RegionOfInterest>("robotgazetools/saliency", 10);
+}
+
+Saliency::~Saliency(){}
+
+void Saliency::setup(int camera, bool _vis) {
+    cout << ">>> Setting up Saliency..." << endl;
+    usingCamera = camera;
+    bt.blockRestart(1);
+    salientSpot.setTrackerTarget(lqrpt);
+    vizu = _vis;
+    cout << ">>> Done!" << endl;
+}
+
+void Saliency::getSaliency(cv::Mat im)
+{
+    double saltime, tottime;
+
+    viz.create(im.rows, im.cols*2, CV_32FC3);
+
+    bt.blockRestart(0);
+    vector<KeyPoint> pts;
+    salTracker.detect(im, pts);
+    saltime = bt.getCurrTime(0) ;
+
+    salTracker.getSalImage(sal);
+
+    double min, max;
+    Point minloc, maxloc;
+    minMaxLoc(sal, &min, &max, &minloc, &maxloc);
+
+    lqrpt[0] = maxloc.x*1.0 / sal.cols;
+    lqrpt[1] = maxloc.y*1.0 / sal.rows;
+
+    salientSpot.setTrackerTarget(lqrpt);
+
+    Mat vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
+    cvtColor(sal, vizRect, CV_GRAY2BGR);
+
+    vizRect = viz(Rect(0, 0, im.cols, im.rows));
+    im.convertTo(vizRect,CV_32F, 1./256.);
+
+    for (size_t i = 0; i < pts.size(); i++) {
+        circle(vizRect, pts[i].pt, 2, CV_RGB(0,255,0));
+    }
+
+    salientSpot.updateTrackerPosition();
+    lqrpt = salientSpot.getCurrentPosition();
+
+    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 6, CV_RGB(0,0,255));
+    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 5, CV_RGB(0,0,255));
+    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 4, CV_RGB(255,255,0));
+    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 3, CV_RGB(255,255,0));
+
+    vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
+    cvtColor(sal, vizRect, CV_GRAY2BGR);
+    if (usingCamera) flip(viz, viz, 1);
+
+    tottime = bt.getCurrTime(1);
+    bt.blockRestart(1);
+
+    stringstream text;
+    text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
+
+    putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
+
+    // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.cols << endl;
+
+    sensor_msgs::RegionOfInterest roi_msg;
+    roi_msg.x_offset = lqrpt[0]*sal.cols;
+    roi_msg.y_offset = lqrpt[1]*sal.cols;
+    roi_msg.height = 1;
+    roi_msg.width = 1;
+
+    pub_s.publish(roi_msg);
+
+    if(vizu) {
+        imshow("SRG-Tools || NMPT Salience || Press Q to Quit", viz);
+    }
 }
 
 
 int main (int argc, char * const argv[])
 {
+    // Global toogle/config
     String dlib_path = "None";
     bool faces_flag = false;
+    bool viz_flag = false;
     bool saliency_flag = false;
 
     // Programm options
@@ -121,11 +264,16 @@ int main (int argc, char * const argv[])
             ("faces", value<string>(), "detect faces ON|OFF")
             ;
 
+        options_description viz("visualization options");
+        faces.add_options()
+            ("viz", value<string>(), "visulatization ON|OFF")
+            ;
+
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz);
 
         variables_map vm;
 
@@ -138,152 +286,115 @@ int main (int argc, char * const argv[])
         }
 
         if (vm.count("faces")) {
-            cout << ">>> face detection is ON" << "\n";
-            faces_flag = true;
-            if (vm.count("dlib")) {
-                const string& s = vm["dlib"].as<string>();
-                dlib_path = s;
-                cout << "    dlib pose model path is: " << s << "\n";
+            const string& s = vm["faces"].as<string>();
+            if(s=="ON") {
+                cout << ">>> Face detection is: " << s << "\n";
+                faces_flag = true;
+                if (vm.count("dlib")) {
+                    const string& s = vm["dlib"].as<string>();
+                    dlib_path = s;
+                    cout << ">>> DLIB pose model path is: " << s << "\n";
+                } else {
+                    cout << ">>> ERROR: DLIB pose model path NOT set \n";
+                    faces_flag = false;
+                    return 0;
+                }
             } else {
-                cout << ">>> ERROR: dlib pose model path NOT set \n";
+                cout << ">>> Face detection is: " << s << "\n";
                 faces_flag = false;
-                return 0;
             }
         } else {
-            cout << ">>> face detection is OFF" << "\n";
+            cout << ">>> Face detection is: OFF" << "\n";
             faces_flag = false;
         }
 
         if (vm.count("saliency")) {
-            cout << ">>> saliency detection is ON" << "\n";
-            saliency_flag = true;
-        } else {
-            cout << ">>> saliency detection is OFF" << "\n";
+            const string& s = vm["saliency"].as<string>();
+            if(s=="ON") {
+                cout << ">>> Saliency detection is: " << s << "\n";
+                saliency_flag = true;
+            } else {
+                 cout << ">>> Saliency detection is: " << s << "\n";
+                 saliency_flag = false;
+            }
+         } else {
+            cout << ">>> Saliency detection is: OFF" << "\n";
             saliency_flag = false;
         }
 
-     } catch(std::exception& e) { cout << e.what() << "\n"; }
+        if (vm.count("viz")) {
+            const string& s = vm["viz"].as<string>();
+            if(s=="ON") {
+                cout << ">>> Visualization is: " << s << "\n";
+                viz_flag = true;
+            } else {
+                 cout << ">>> Visualization is: " << s << "\n";
+                 viz_flag = false;
+            }
+         } else {
+            cout << ">>> Visualization is: OFF" << "\n";
+            viz_flag = false;
+        }
+
+    } catch(std::exception& e) { cout << e.what() << "\n"; }
 
     Size imSize(320,240);
-    BlockTimer bt;
 
-    //CV set capture device
+    // CV Set Capture Device
     VideoCapture capture;
 \
     int usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(capture, argc, (const char**)argv);
-    if (!usingCamera--) return 0;
 
-    FastSalience salTracker;
+    if (!usingCamera--) {
+        return 0;
+    }
 
-    LQRPointTracker salientSpot(2);
-    vector<double> lqrpt(2,.5);
-    salientSpot.setTrackerTarget(lqrpt);
+    cv::Mat fim, fim2, sim, sim2;
 
-    //CV set capture to desired width/height
     if (usingCamera) {
         capture.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
         capture.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
     }
 
-    bt.blockRestart(1);
-    cv::Mat im, im2, viz, sal;
-
     // ROS
-    ros::init(argc, (char **) argv, "gazetools");
-    ros::NodeHandle n;
-    ros::Publisher pub_s = n.advertise<sensor_msgs::RegionOfInterest>("gazetools/saliency", 10);
-    ros::Publisher pub_f = n.advertise<people_msgs::People>("gazetools/faces", 10);
+    ros::init(argc, (char **) argv, "robotgazetools");
 
     // DLIB
-    Faces f;
+    Faces fac;
     if(faces_flag) {
-        f.setPath(dlib_path);
+        fac.setPath(dlib_path, viz_flag);
     }
 
-    // thread c_thread;
+    // NMPT
+    Saliency sal;
+    if(saliency_flag){
+        sal.setup(usingCamera, viz_flag);
+    }
 
-    while (waitKey(5) <= 0) {
+    while (waitKey(1) <= 0) {
 
-            double saltime, tottime;
-            capture >> im2;
-            if (usingCamera) {
-                im = im2;
-            } else {
-                double ratio = imSize.width * 1. / im2.cols;
-                resize(im2, im, Size(0,0), ratio, ratio, INTER_NEAREST);
-            }
+        capture >> fim2;
+        capture >> sim2;
 
-            /*if(faces_flag && c_thread.get_id() == thread::id()) {
-                //f.getFaces(im);
-                //thread t(bind(Faces::getFaces, f, im));
-                c_thread = thread(bind(&Faces::getFaces, &f, im));
-            }*/
+        if(usingCamera) {
+            fim = fim2;
+            sim = sim2;
 
-            f.getFaces(im);
+        } else {
+            double ratio = imSize.width * 1. / fim2.cols;
+            resize(fim2, fim, Size(0,0), ratio, ratio, INTER_NEAREST);
+            resize(sim2, sim, Size(0,0), ratio, ratio, INTER_NEAREST);
+        }
 
-            if (saliency_flag) {
-                viz.create(im.rows, im.cols*2, CV_32FC3);
+        if (saliency_flag) {
+            sal.getSaliency(sim);
+        }
 
-                bt.blockRestart(0);
-                vector<KeyPoint> pts;
-                salTracker.detect(im, pts);
-                saltime = bt.getCurrTime(0) ;
+        if (faces_flag) {
+            fac.getFaces(fim);
+        }
 
-                salTracker.getSalImage(sal);
-
-                double min, max;
-                Point minloc, maxloc;
-                minMaxLoc(sal, &min, &max, &minloc, &maxloc);
-
-                lqrpt[0] = maxloc.x*1.0 / sal.cols;
-                lqrpt[1] = maxloc.y*1.0 / sal.rows;
-
-                salientSpot.setTrackerTarget(lqrpt);
-
-                Mat vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
-                cvtColor(sal, vizRect, CV_GRAY2BGR);
-
-                vizRect = viz(Rect(0, 0, im.cols, im.rows));
-                im.convertTo(vizRect,CV_32F, 1./256.);
-
-                for (size_t i = 0; i < pts.size(); i++) {
-                    circle(vizRect, pts[i].pt, 2, CV_RGB(0,255,0));
-                }
-
-                salientSpot.updateTrackerPosition();
-                lqrpt = salientSpot.getCurrentPosition();
-
-                circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 6, CV_RGB(0,0,255));
-                circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 5, CV_RGB(0,0,255));
-                circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 4, CV_RGB(255,255,0));
-                circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 3, CV_RGB(255,255,0));
-
-                vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
-                cvtColor(sal, vizRect, CV_GRAY2BGR);
-                if (usingCamera) flip(viz, viz, 1);
-
-                tottime = bt.getCurrTime(1);
-                bt.blockRestart(1);
-
-                stringstream text;
-                text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
-
-                putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
-
-                cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.cols << endl;
-
-                sensor_msgs::RegionOfInterest roi_msg;
-                roi_msg.x_offset = lqrpt[0]*sal.cols;
-                roi_msg.y_offset = lqrpt[1]*sal.cols;
-                roi_msg.height = 1;
-                roi_msg.width = 1;
-
-                pub_s.publish(roi_msg);
-
-                imshow("SRG-Tools || NMPT Salience || Press Q to Quit", viz);
-            }
-
-        // ROS Spinner (send messages)
+        // ROS Spinner (send messages trigger loop)
         ros::spinOnce();
     }
 }
