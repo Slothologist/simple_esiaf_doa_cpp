@@ -53,7 +53,7 @@ class Faces
     public:
       Faces();
       ~Faces();
-      void getFaces(cv::Mat img);
+      void getFaces(cv::Mat img, std_msgs::Header header);
       void setPath(String path, bool _vis);
 
     protected:
@@ -88,7 +88,7 @@ void Faces::setPath(String path, bool _vis)
 }
 
 
-void Faces::getFaces(cv::Mat _img)
+void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
 {
     dlib::cv_image<dlib::bgr_pixel> cimg(_img);
     // Detect faces
@@ -115,6 +115,7 @@ void Faces::getFaces(cv::Mat _img)
         people_msg.people.push_back(person_msg);
     }
     if(people_msg.people.size() > 0){
+        people_msg.header = header;
         pub_f.publish(people_msg);
     }
     // Display it all on the screen
@@ -131,7 +132,7 @@ class Saliency
     public:
       Saliency();
       ~Saliency();
-      void getSaliency(cv::Mat img);
+      void getSaliency(cv::Mat img, std_msgs::Header header);
       void setup(int camera, bool _vis);
     protected:
       // DLIB
@@ -150,7 +151,9 @@ class Saliency
 };
 
 Saliency::Saliency() {
-    pub_s = n.advertise<sensor_msgs::RegionOfInterest>("robotgazetools/saliency", 10);
+    // pub_s = n.advertise<sensor_msgs::RegionOfInterest>("robotgazetools/saliency", 10);
+    pub_s = n.advertise<people_msgs::People>("robotgazetools/faces", 10);
+
 }
 
 Saliency::~Saliency(){}
@@ -164,7 +167,7 @@ void Saliency::setup(int camera, bool _vis) {
     cout << ">>> Done!" << endl;
 }
 
-void Saliency::getSaliency(cv::Mat im)
+void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
 {
     double saltime, tottime;
 
@@ -218,13 +221,28 @@ void Saliency::getSaliency(cv::Mat im)
 
     // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.cols << endl;
 
-    sensor_msgs::RegionOfInterest roi_msg;
-    roi_msg.x_offset = lqrpt[0]*sal.cols;
-    roi_msg.y_offset = lqrpt[1]*sal.cols;
-    roi_msg.height = 1;
-    roi_msg.width = 1;
+    // ROI does not feature a HEADER, need to look into this!
+    // sensor_msgs::RegionOfInterest roi_msg;
+    // roi_msg.x_offset = lqrpt[0]*sal.cols;
+    // roi_msg.y_offset = lqrpt[1]*sal.cols;
+    // roi_msg.height = 1;
+    // roi_msg.width = 1;
+    // pub_s.publish(roi_msg);
 
-    pub_s.publish(roi_msg);
+    people_msgs::People people_msg;
+    people_msgs::Person person_msg;
+    person_msg.name = "unkown";
+    person_msg.reliability = 0.0;
+    geometry_msgs::Point p;
+    double mid_x = lqrpt[0]*sal.cols;
+    double mid_y = lqrpt[1]*sal.cols;
+    p.x = mid_x;
+    p.y = mid_y;
+    p.z = lqrpt[0]*sal.cols;
+    person_msg.position = p;
+    people_msg.people.push_back(person_msg);
+    people_msg.header = header;
+    pub_s.publish(people_msg);
 
     if(vizu) {
         imshow("SRG-Tools || NMPT Salience || Press Q to Quit", viz);
@@ -376,6 +394,10 @@ int main (int argc, char * const argv[])
         capture >> fim2;
         capture >> sim2;
 
+        std_msgs::Header h;
+        h.stamp = ros::Time::now();
+        h.frame_id = "1";
+
         if(usingCamera) {
             fim = fim2;
             sim = sim2;
@@ -387,11 +409,11 @@ int main (int argc, char * const argv[])
         }
 
         if (saliency_flag) {
-            sal.getSaliency(sim);
+            sal.getSaliency(sim, h);
         }
 
         if (faces_flag) {
-            fac.getFaces(fim);
+            fac.getFaces(fim, h);
         }
 
         // ROS Spinner (send messages trigger loop)
