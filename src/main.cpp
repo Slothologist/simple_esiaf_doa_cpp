@@ -31,8 +31,9 @@
 
 // ROS
 #include "ros/ros.h"
-#include "sensor_msgs/RegionOfInterest.h"
 #include "people_msgs/People.h"
+#include "geometry_msgs/Point.h"
+#include "geometry_msgs/PointStamped.h"
 
 // DLIB
 #include <dlib/opencv.h>
@@ -152,7 +153,7 @@ class Saliency
 
 Saliency::Saliency() {
     // pub_s = n.advertise<sensor_msgs::RegionOfInterest>("robotgazetools/saliency", 10);
-    pub_s = n.advertise<people_msgs::People>("robotgazetools/faces", 10);
+    pub_s = n.advertise<geometry_msgs::PointStamped>("robotgazetools/saliency", 10);
 
 }
 
@@ -229,20 +230,16 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     // roi_msg.width = 1;
     // pub_s.publish(roi_msg);
 
-    people_msgs::People people_msg;
-    people_msgs::Person person_msg;
-    person_msg.name = "unkown";
-    person_msg.reliability = 0.0;
+    geometry_msgs::PointStamped ps;
     geometry_msgs::Point p;
     double mid_x = lqrpt[0]*sal.cols;
     double mid_y = lqrpt[1]*sal.cols;
     p.x = mid_x;
     p.y = mid_y;
     p.z = lqrpt[0]*sal.cols;
-    person_msg.position = p;
-    people_msg.people.push_back(person_msg);
-    people_msg.header = header;
-    pub_s.publish(people_msg);
+    ps.point = p;
+    ps.header = header;
+    pub_s.publish(ps);
 
     if(vizu) {
         imshow("SRG-Tools || NMPT Salience || Press Q to Quit", viz);
@@ -372,6 +369,7 @@ int main (int argc, char * const argv[])
     if (usingCamera) {
         capture.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
         capture.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
+        capture.set(CV_CAP_PROP_FPS, 30);
     }
 
     // ROS
