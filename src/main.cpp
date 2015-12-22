@@ -55,7 +55,7 @@ class Faces
       Faces();
       ~Faces();
       void getFaces(cv::Mat img, std_msgs::Header header);
-      void setPath(String path, bool _vis);
+      void setPath(String path, bool _vis, bool _fit);
 
     protected:
       // DLIB
@@ -66,7 +66,7 @@ class Faces
       ros::NodeHandle n;
       ros::Publisher pub_f;
       // SELF
-      bool viz;
+      bool viz, fit;
 };
 
 Faces::Faces(){
@@ -74,9 +74,11 @@ Faces::Faces(){
 }
 Faces::~Faces(){}
 
-void Faces::setPath(String path, bool _vis)
+void Faces::setPath(String path, bool _vis, bool _fit)
 {
     viz = _vis;
+    fit = _fit;
+
     detector = dlib::get_frontal_face_detector();
     try {
         dlib::deserialize(path) >> pose_model;
@@ -96,8 +98,10 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
     std::vector<dlib::rectangle> faces = detector(cimg);
     // Find the pose of each face.
     std::vector<dlib::full_object_detection> shapes;
-    for (unsigned long i = 0; i < faces.size(); ++i) {
-        shapes.push_back(pose_model(cimg, faces[i]));
+    if(fit) {
+        for (unsigned long i = 0; i < faces.size(); ++i) {
+            shapes.push_back(pose_model(cimg, faces[i]));
+        }
     }
     people_msgs::People people_msg;
     people_msgs::Person person_msg;
@@ -121,9 +125,13 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
     }
     // Display it all on the screen
     if (viz) {
-        win.clear_overlay();
+        if(fit) {
+            win.clear_overlay();
+        }
         win.set_image(cimg);
-        win.add_overlay(render_face_detections(shapes));
+        if(fit) {
+            win.add_overlay(render_face_detections(shapes));
+        }
     }
 }
 
@@ -254,6 +262,7 @@ int main (int argc, char * const argv[])
     bool faces_flag = false;
     bool viz_flag = false;
     bool saliency_flag = false;
+    bool fit_flag = false;
 
     // Programm options
     try {
@@ -280,15 +289,20 @@ int main (int argc, char * const argv[])
             ;
 
         options_description viz("visualization options");
-        faces.add_options()
+        viz.add_options()
             ("viz", value<string>(), "visulatization ON|OFF")
             ;
 
+        options_description fit("fitting options");
+        fit.add_options()
+            ("fit", value<string>(), "fitting ON|OFF")
+            ;
+
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit);
 
         variables_map vm;
 
@@ -351,6 +365,20 @@ int main (int argc, char * const argv[])
             viz_flag = false;
         }
 
+        if (vm.count("fit")) {
+            const string& s = vm["fit"].as<string>();
+            if(s=="ON") {
+                cout << ">>> Fitting is: " << s << "\n";
+                fit_flag = true;
+            } else {
+                 cout << ">>> Fitting is: " << s << "\n";
+                 fit_flag = false;
+            }
+         } else {
+            cout << ">>> Fitting is: OFF" << "\n";
+            fit_flag = false;
+        }
+
     } catch(std::exception& e) { cout << e.what() << "\n"; }
 
     Size imSize(320,240);
@@ -378,7 +406,7 @@ int main (int argc, char * const argv[])
     // DLIB
     Faces fac;
     if(faces_flag) {
-        fac.setPath(dlib_path, viz_flag);
+        fac.setPath(dlib_path, viz_flag, fit_flag);
     }
 
     // NMPT
