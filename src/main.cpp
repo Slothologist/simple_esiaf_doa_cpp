@@ -228,7 +228,7 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
 
     putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
 
-    // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.cols << endl;
+    // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.rows << endl;
 
     // ROI does not feature a HEADER, need to look into this!
     // sensor_msgs::RegionOfInterest roi_msg;
@@ -241,7 +241,7 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     geometry_msgs::PointStamped ps;
     geometry_msgs::Point p;
     double mid_x = lqrpt[0]*sal.cols;
-    double mid_y = lqrpt[1]*sal.cols;
+    double mid_y = lqrpt[1]*sal.rows;
     p.x = mid_x;
     p.y = mid_y;
     p.z = lqrpt[0]*sal.cols;
