@@ -87,15 +87,22 @@ void Faces::setPath(String path, bool _vis, bool _fit)
         cout << "You can get it from the following URL: " << endl;
         cout << "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
         cout << endl << e.what() << endl;
+        exit(1);
     }
 }
 
 
 void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
 {
+    // ROS MSGS
+    people_msgs::People people_msg;
+    people_msgs::Person person_msg;
+
     dlib::cv_image<dlib::bgr_pixel> cimg(_img);
+
     // Detect faces
     std::vector<dlib::rectangle> faces = detector(cimg);
+
     // Find the pose of each face.
     std::vector<dlib::full_object_detection> shapes;
     if(fit) {
@@ -103,12 +110,10 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
             shapes.push_back(pose_model(cimg, faces[i]));
         }
     }
-    people_msgs::People people_msg;
-    people_msgs::Person person_msg;
     for(unsigned long i = 0; i < faces.size(); ++i) {
         // cout << "left: " << faces[i].left() << " top: " << faces[i].top() << endl;
         // cout << "right: " << faces[i].right() << " bottom: " << faces[i].bottom() << endl;
-        person_msg.name = "unkown";
+        person_msg.name = "unknown";
         person_msg.reliability = 0.0;
         geometry_msgs::Point p;
         double mid_x = (faces[i].left() + faces[i].right())/2.0;
@@ -160,9 +165,7 @@ class Saliency
 };
 
 Saliency::Saliency() {
-    // pub_s = n.advertise<sensor_msgs::RegionOfInterest>("robotgazetools/saliency", 10);
     pub_s = n.advertise<geometry_msgs::PointStamped>("robotgazetools/saliency", 10);
-
 }
 
 Saliency::~Saliency(){}
@@ -182,7 +185,9 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
 
     viz.create(im.rows, im.cols*2, CV_32FC3);
 
+    // Time me
     bt.blockRestart(0);
+
     vector<KeyPoint> pts;
     salTracker.detect(im, pts);
     saltime = bt.getCurrTime(0) ;
@@ -216,12 +221,9 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 4, CV_RGB(255,255,0));
     circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 3, CV_RGB(255,255,0));
 
-    vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
-    cvtColor(sal, vizRect, CV_GRAY2BGR);
-
-    //if (usingCamera) flip(viz, viz, 1);
-
     tottime = bt.getCurrTime(1);
+
+    // Stop Timer
     bt.blockRestart(1);
 
     stringstream text;
@@ -230,15 +232,6 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
 
     // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.rows << endl;
-
-    // ROI does not feature a HEADER, need to look into this!
-    // sensor_msgs::RegionOfInterest roi_msg;
-    // roi_msg.x_offset = lqrpt[0]*sal.cols;
-    // roi_msg.y_offset = lqrpt[1]*sal.cols;
-    // roi_msg.height = 1;
-    // roi_msg.width = 1;
-    // pub_s.publish(roi_msg);
-
     geometry_msgs::PointStamped ps;
     geometry_msgs::Point p;
     double mid_x = lqrpt[0]*sal.cols;
@@ -323,7 +316,7 @@ int main (int argc, char * const argv[])
                 if (vm.count("dlib")) {
                     const string& s = vm["dlib"].as<string>();
                     dlib_path = s;
-                    cout << ">>> DLIB pose model path is: " << s << "\n";
+                    cout << ">>> DLIB pose model found!" << "\n";
                 } else {
                     cout << ">>> ERROR: DLIB pose model path NOT set \n";
                     faces_flag = false;
@@ -390,10 +383,11 @@ int main (int argc, char * const argv[])
     int usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(capture, argc, (const char**)argv);
 
     if (!usingCamera--) {
-        return 0;
+        cout << "Sorry no static video file support for now" << endl;
+        exit(1);
     }
 
-    cv::Mat fim, fim2, sim, sim2;
+    cv::Mat frame_s, frame_f;
 
     if (usingCamera) {
         capture.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
@@ -418,29 +412,19 @@ int main (int argc, char * const argv[])
 
     while (waitKey(1) <= 0) {
 
-        capture >> fim2;
-        capture >> sim2;
+        capture >> frame_f;
 
         std_msgs::Header h;
         h.stamp = ros::Time::now();
         h.frame_id = "1";
 
-        if(usingCamera) {
-            fim = fim2;
-            sim = sim2;
-
-        } else {
-            double ratio = imSize.width * 1. / fim2.cols;
-            resize(fim2, fim, Size(0,0), ratio, ratio, INTER_NEAREST);
-            resize(sim2, sim, Size(0,0), ratio, ratio, INTER_NEAREST);
-        }
-
         if (saliency_flag) {
-            sal.getSaliency(sim, h);
+            frame_s = frame_f.clone();
+            sal.getSaliency(frame_s, h);
         }
 
         if (faces_flag) {
-            fac.getFaces(fim, h);
+            fac.getFaces(frame_f, h);
         }
 
         // ROS Spinner (send messages trigger loop)
