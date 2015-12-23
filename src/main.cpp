@@ -11,6 +11,7 @@
 
 // CV
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -38,7 +39,6 @@
 
 // DLIB
 #include <dlib/opencv.h>
-#include <opencv2/highgui/highgui.hpp>
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
@@ -398,6 +398,9 @@ int main (int argc, char * const argv[])
 
     } catch(std::exception& e) { cout << e.what() << "\n"; }
 
+    // ROS
+    ros::init(argc, (char **) argv, "robotgazetools");
+
     Size imSize(320,240);
 
     // CV Set Capture Device
@@ -410,16 +413,15 @@ int main (int argc, char * const argv[])
         exit(1);
     }
 
-    cv::Mat frame, frame_s, frame_f;
+    cv::Mat frame;
+    cv::Mat frame_s;
+    cv::Mat frame_f;
 
     if (usingCamera) {
         capture.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
         capture.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
         capture.set(CV_CAP_PROP_FPS, 30);
     }
-
-    // ROS
-    ros::init(argc, (char **) argv, "robotgazetools");
 
     // DLIB
     Faces fac;
@@ -433,7 +435,7 @@ int main (int argc, char * const argv[])
         sal.setup(usingCamera, viz_flag);
     }
 
-    while (waitKey(1) <= 0) {
+    while (cv::waitKey(1) <= 0) {
 
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
@@ -449,14 +451,14 @@ int main (int argc, char * const argv[])
         h.stamp = ros::Time::now();
         h.frame_id = "1";
 
-        if (saliency_flag) {
-            frame_s = frame.clone();
-            sal.getSaliency(frame_s, h);
-        }
-
         if (faces_flag) {
             frame_f = frame.clone();
             fac.getFaces(frame_f, h);
+        }
+
+        if (saliency_flag) {
+            frame_s = frame.clone();
+            sal.getSaliency(frame_s, h);
         }
 
         // ROS Spinner (send messages trigger loop)
