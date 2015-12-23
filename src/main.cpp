@@ -183,10 +183,10 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
 {
     double saltime, tottime;
 
-    viz.create(im.rows, im.cols*2, CV_32FC3);
-
     // Time me
     bt.blockRestart(0);
+
+    viz.create(im.rows, im.cols*2, CV_32FC3);
 
     vector<KeyPoint> pts;
     salTracker.detect(im, pts);
@@ -257,6 +257,8 @@ int main (int argc, char * const argv[])
     bool viz_flag = false;
     bool saliency_flag = false;
     bool fit_flag = false;
+    bool timing_flag = false;
+    BlockTimer loop;
 
     // Programm options
     try {
@@ -292,11 +294,16 @@ int main (int argc, char * const argv[])
             ("fit", value<string>(), "fitting ON|OFF")
             ;
 
+        options_description timing("timing options");
+        timing.add_options()
+            ("timing", value<string>(), "timing ON|OFF")
+            ;
+
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing);
 
         variables_map vm;
 
@@ -373,6 +380,20 @@ int main (int argc, char * const argv[])
             fit_flag = false;
         }
 
+        if (vm.count("timing")) {
+            const string& s = vm["timing"].as<string>();
+            if(s=="ON") {
+                cout << ">>> Timing is: " << s << "\n";
+                timing_flag = true;
+            } else {
+                 cout << ">>> Timing is: " << s << "\n";
+                 timing_flag = false;
+            }
+         } else {
+            cout << ">>> Timing is: OFF" << "\n";
+            timing_flag = false;
+        }
+
     } catch(std::exception& e) { cout << e.what() << "\n"; }
 
     Size imSize(320,240);
@@ -410,7 +431,14 @@ int main (int argc, char * const argv[])
         sal.setup(usingCamera, viz_flag);
     }
 
+    loop.blockRestart(0);
+
     while (waitKey(1) <= 0) {
+
+        double tottime;
+
+        // Time me
+        loop.blockRestart(0);
 
         capture >> frame_f;
 
@@ -429,5 +457,14 @@ int main (int argc, char * const argv[])
 
         // ROS Spinner (send messages trigger loop)
         ros::spinOnce();
+
+        tottime = loop.getCurrTime(1);
+
+        // Stop Timer
+        loop.blockRestart(1);
+
+        if(timing_flag) {
+            cout << "Main Loop Time consumption: " << (int)(tottime*1000) << " ms." << endl;
+        }
     }
 }
