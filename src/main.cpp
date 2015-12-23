@@ -144,25 +144,33 @@ class Saliency
       void getSaliency(cv::Mat img, std_msgs::Header header);
       void setup(int camera, bool _vis);
     protected:
-      // DLIB
+      // NMPT
       BlockTimer bt;
-      FastSalience salTracker;
       cv::Mat viz, sal;
       int usingCamera;
-      vector<double> lqrpt{2,.5};
-      LQRPointTracker salientSpot{2};
       // ROS
       ros::NodeHandle n;
       ros::Publisher pub_s;
       // SELF
       bool vizu;
-
+      // NMPT-2
+      /**
+       * @param numtemporal Number of timescales of Difference of Expontential filters to track.
+       * @param numspatial Number of sizes of Difference of Box filters to use.
+       * @param firsttau Exponential Falloff parameter for the first Difference of Exponentials scale. Lower numbers
+       * give slower falloff. Must be greater than 0.
+       * @param firstrad Radius of smallest Difference of Boxes filter center. The diameter of the box is 2*rad+1, so
+       * the smallest allowed first radius is 0.
+       */
+      // Default: FastSalience salTracker;
+      FastSalience salTracker;
+      vector<double> lqrpt{2,.5};
+      // Deafault: salientSpot{2};
+      LQRPointTracker salientSpot{2, 1.0, 0,.015};
 };
 
 Saliency::Saliency() {
-    // pub_s = n.advertise<sensor_msgs::RegionOfInterest>("robotgazetools/saliency", 10);
     pub_s = n.advertise<geometry_msgs::PointStamped>("robotgazetools/saliency", 10);
-
 }
 
 Saliency::~Saliency(){}
@@ -172,6 +180,7 @@ void Saliency::setup(int camera, bool _vis) {
     usingCamera = camera;
     bt.blockRestart(1);
     salientSpot.setTrackerTarget(lqrpt);
+    salTracker.setUseDoEFeatures(1);
     vizu = _vis;
     cout << ">>> Done!" << endl;
 }
@@ -244,7 +253,7 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     double mid_y = lqrpt[1]*sal.rows;
     p.x = mid_x;
     p.y = mid_y;
-    p.z = lqrpt[0]*sal.cols;
+    p.z = pts.size();
     ps.point = p;
     ps.header = header;
     pub_s.publish(ps);
