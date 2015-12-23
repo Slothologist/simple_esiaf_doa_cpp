@@ -22,6 +22,7 @@
 #include <boost/program_options/variables_map.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/token_functions.hpp>
+#include "boost/date_time/posix_time/posix_time.hpp"
 
 // NMPT
 #include <nmpt/BlockTimer.h>
@@ -47,6 +48,8 @@ using namespace std;
 using namespace cv;
 using namespace boost;
 using namespace boost::program_options;
+using namespace boost::posix_time;
+
 
 // Find Faces and Publish
 class Faces
@@ -221,16 +224,6 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 4, CV_RGB(255,255,0));
     circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 3, CV_RGB(255,255,0));
 
-    tottime = bt.getCurrTime(1);
-
-    // Stop Timer
-    bt.blockRestart(1);
-
-    stringstream text;
-    text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
-
-    putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
-
     // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.rows << endl;
     geometry_msgs::PointStamped ps;
     geometry_msgs::Point p;
@@ -242,6 +235,16 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     ps.point = p;
     ps.header = header;
     pub_s.publish(ps);
+
+    tottime = bt.getCurrTime(1);
+
+    // Stop Timer
+    bt.blockRestart(1);
+
+    stringstream text;
+    text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
+
+    putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
 
     if(vizu) {
         imshow("SRG-Tools || NMPT Salience || Press Q to Quit", viz);
@@ -258,7 +261,6 @@ int main (int argc, char * const argv[])
     bool saliency_flag = false;
     bool fit_flag = false;
     bool timing_flag = false;
-    BlockTimer loop;
 
     // Programm options
     try {
@@ -408,7 +410,7 @@ int main (int argc, char * const argv[])
         exit(1);
     }
 
-    cv::Mat frame_s, frame_f;
+    cv::Mat frame, frame_s, frame_f;
 
     if (usingCamera) {
         capture.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
@@ -431,40 +433,39 @@ int main (int argc, char * const argv[])
         sal.setup(usingCamera, viz_flag);
     }
 
-    loop.blockRestart(0);
-
     while (waitKey(1) <= 0) {
 
-        double tottime;
+        boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
-        // Time me
-        loop.blockRestart(0);
+        capture >> frame;
 
-        capture >> frame_f;
+        if(timing_flag) {
+            boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration msdiff = c - init;
+            cout << "[Capture] Time Consumption: " << msdiff.total_milliseconds() << std::endl;
+        }
 
         std_msgs::Header h;
         h.stamp = ros::Time::now();
         h.frame_id = "1";
 
         if (saliency_flag) {
-            frame_s = frame_f.clone();
+            frame_s = frame.clone();
             sal.getSaliency(frame_s, h);
         }
 
         if (faces_flag) {
+            frame_f = frame.clone();
             fac.getFaces(frame_f, h);
         }
 
         // ROS Spinner (send messages trigger loop)
         ros::spinOnce();
 
-        tottime = loop.getCurrTime(1);
-
-        // Stop Timer
-        loop.blockRestart(1);
-
         if(timing_flag) {
-            cout << "Main Loop Time consumption: " << (int)(tottime*1000) << " ms." << endl;
+            boost::posix_time::ptime a = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration msdiff = a - init;
+            cout << "[Main Loop] Time Consumption: " << msdiff.total_milliseconds() << std::endl;
         }
     }
 }
