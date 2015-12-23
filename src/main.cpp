@@ -441,8 +441,8 @@ int main (int argc, char * const argv[])
 
         if(timing_flag) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration msdiff = c - init;
-            cout << "[Capture] Time Consumption: " << msdiff.total_milliseconds() << std::endl;
+            boost::posix_time::time_duration cdiff = c - init;
+            cout << "[Capture] Time Consumption: " << cdiff.total_milliseconds() << "ms" << std::endl;
         }
 
         std_msgs::Header h;
@@ -464,8 +464,8 @@ int main (int argc, char * const argv[])
 
         if(timing_flag) {
             boost::posix_time::ptime a = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration msdiff = a - init;
-            cout << "[Main Loop] Time Consumption: " << msdiff.total_milliseconds() << std::endl;
+            boost::posix_time::time_duration adiff = a - init;
+            cout << "[Main Loop] Time Consumption: " << adiff.total_milliseconds() << "ms" << std::endl;
         }
     }
 }
