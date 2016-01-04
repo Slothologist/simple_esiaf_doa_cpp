@@ -11,6 +11,7 @@
 
 // CV
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -22,6 +23,7 @@
 #include <boost/program_options/variables_map.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/token_functions.hpp>
+#include "boost/date_time/posix_time/posix_time.hpp"
 
 // NMPT
 #include <nmpt/BlockTimer.h>
@@ -37,7 +39,6 @@
 
 // DLIB
 #include <dlib/opencv.h>
-#include <opencv2/highgui/highgui.hpp>
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
@@ -47,6 +48,8 @@ using namespace std;
 using namespace cv;
 using namespace boost;
 using namespace boost::program_options;
+using namespace boost::posix_time;
+
 
 // Find Faces and Publish
 class Faces
@@ -87,15 +90,22 @@ void Faces::setPath(String path, bool _vis, bool _fit)
         cout << "You can get it from the following URL: " << endl;
         cout << "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
         cout << endl << e.what() << endl;
+        exit(1);
     }
 }
 
 
 void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
 {
+    // ROS MSGS
+    people_msgs::People people_msg;
+    people_msgs::Person person_msg;
+
     dlib::cv_image<dlib::bgr_pixel> cimg(_img);
+
     // Detect faces
     std::vector<dlib::rectangle> faces = detector(cimg);
+
     // Find the pose of each face.
     std::vector<dlib::full_object_detection> shapes;
     if(fit) {
@@ -103,12 +113,10 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
             shapes.push_back(pose_model(cimg, faces[i]));
         }
     }
-    people_msgs::People people_msg;
-    people_msgs::Person person_msg;
     for(unsigned long i = 0; i < faces.size(); ++i) {
         // cout << "left: " << faces[i].left() << " top: " << faces[i].top() << endl;
         // cout << "right: " << faces[i].right() << " bottom: " << faces[i].bottom() << endl;
-        person_msg.name = "unkown";
+        person_msg.name = "unknown";
         person_msg.reliability = 0.0;
         geometry_msgs::Point p;
         double mid_x = (faces[i].left() + faces[i].right())/2.0;
@@ -189,9 +197,11 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
 {
     double saltime, tottime;
 
+    // Time me
+    bt.blockRestart(0);
+
     viz.create(im.rows, im.cols*2, CV_32FC3);
 
-    bt.blockRestart(0);
     vector<KeyPoint> pts;
     salTracker.detect(im, pts);
     saltime = bt.getCurrTime(0) ;
@@ -225,28 +235,7 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 4, CV_RGB(255,255,0));
     circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 3, CV_RGB(255,255,0));
 
-    vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
-    cvtColor(sal, vizRect, CV_GRAY2BGR);
-    if (usingCamera) flip(viz, viz, 1);
-
-    tottime = bt.getCurrTime(1);
-    bt.blockRestart(1);
-
-    stringstream text;
-    text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
-
-    putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
-
     // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.rows << endl;
-
-    // ROI does not feature a HEADER, need to look into this!
-    // sensor_msgs::RegionOfInterest roi_msg;
-    // roi_msg.x_offset = lqrpt[0]*sal.cols;
-    // roi_msg.y_offset = lqrpt[1]*sal.cols;
-    // roi_msg.height = 1;
-    // roi_msg.width = 1;
-    // pub_s.publish(roi_msg);
-
     geometry_msgs::PointStamped ps;
     geometry_msgs::Point p;
     double mid_x = lqrpt[0]*sal.cols;
@@ -257,6 +246,16 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     ps.point = p;
     ps.header = header;
     pub_s.publish(ps);
+
+    tottime = bt.getCurrTime(1);
+
+    // Stop Timer
+    bt.blockRestart(1);
+
+    stringstream text;
+    text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
+
+    putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
 
     if(vizu) {
         imshow("SRG-Tools || NMPT Salience || Press Q to Quit", viz);
@@ -272,6 +271,7 @@ int main (int argc, char * const argv[])
     bool viz_flag = false;
     bool saliency_flag = false;
     bool fit_flag = false;
+    bool timing_flag = false;
 
     // Programm options
     try {
@@ -307,11 +307,16 @@ int main (int argc, char * const argv[])
             ("fit", value<string>(), "fitting ON|OFF")
             ;
 
+        options_description timing("timing options");
+        timing.add_options()
+            ("timing", value<string>(), "timing ON|OFF")
+            ;
+
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing);
 
         variables_map vm;
 
@@ -331,7 +336,7 @@ int main (int argc, char * const argv[])
                 if (vm.count("dlib")) {
                     const string& s = vm["dlib"].as<string>();
                     dlib_path = s;
-                    cout << ">>> DLIB pose model path is: " << s << "\n";
+                    cout << ">>> DLIB pose model found!" << "\n";
                 } else {
                     cout << ">>> ERROR: DLIB pose model path NOT set \n";
                     faces_flag = false;
@@ -388,7 +393,24 @@ int main (int argc, char * const argv[])
             fit_flag = false;
         }
 
+        if (vm.count("timing")) {
+            const string& s = vm["timing"].as<string>();
+            if(s=="ON") {
+                cout << ">>> Timing is: " << s << "\n";
+                timing_flag = true;
+            } else {
+                 cout << ">>> Timing is: " << s << "\n";
+                 timing_flag = false;
+            }
+         } else {
+            cout << ">>> Timing is: OFF" << "\n";
+            timing_flag = false;
+        }
+
     } catch(std::exception& e) { cout << e.what() << "\n"; }
+
+    // ROS
+    ros::init(argc, (char **) argv, "robotgazetools");
 
     Size imSize(320,240);
 
@@ -398,19 +420,19 @@ int main (int argc, char * const argv[])
     int usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(capture, argc, (const char**)argv);
 
     if (!usingCamera--) {
-        return 0;
+        cout << "Sorry no static video file support for now" << endl;
+        exit(1);
     }
 
-    cv::Mat fim, fim2, sim, sim2;
+    cv::Mat frame;
+    cv::Mat frame_s;
+    cv::Mat frame_f;
 
     if (usingCamera) {
         capture.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
         capture.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
         capture.set(CV_CAP_PROP_FPS, 30);
     }
-
-    // ROS
-    ros::init(argc, (char **) argv, "robotgazetools");
 
     // DLIB
     Faces fac;
@@ -424,34 +446,39 @@ int main (int argc, char * const argv[])
         sal.setup(usingCamera, viz_flag);
     }
 
-    while (waitKey(1) <= 0) {
+    while (cv::waitKey(1) <= 0) {
 
-        capture >> fim2;
-        capture >> sim2;
+        boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
+
+        capture >> frame;
+
+        if(timing_flag) {
+            boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration cdiff = c - init;
+            cout << "[Capture] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
+        }
 
         std_msgs::Header h;
         h.stamp = ros::Time::now();
         h.frame_id = "1";
 
-        if(usingCamera) {
-            fim = fim2;
-            sim = sim2;
-
-        } else {
-            double ratio = imSize.width * 1. / fim2.cols;
-            resize(fim2, fim, Size(0,0), ratio, ratio, INTER_NEAREST);
-            resize(sim2, sim, Size(0,0), ratio, ratio, INTER_NEAREST);
+        if (faces_flag) {
+            frame_f = frame.clone();
+            fac.getFaces(frame_f, h);
         }
 
         if (saliency_flag) {
-            sal.getSaliency(sim, h);
-        }
-
-        if (faces_flag) {
-            fac.getFaces(fim, h);
+            frame_s = frame.clone();
+            sal.getSaliency(frame_s, h);
         }
 
         // ROS Spinner (send messages trigger loop)
         ros::spinOnce();
+
+        if(timing_flag) {
+            boost::posix_time::ptime a = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration adiff = a - init;
+            cout << "[Main Loop] Time Consumption: " << adiff.total_milliseconds() << " ms" << std::endl;
+        }
     }
 }
