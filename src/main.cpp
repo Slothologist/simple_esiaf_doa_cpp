@@ -137,6 +137,7 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
     }
     // Display it all on the screen
     if (viz) {
+        win.set_title("Simple Robot Gaze Tools || DLIB Faces");
         win.clear_overlay();
         win.set_image(cimg);
         win.add_overlay(faces, dlib::rgb_pixel(255,0,0));
@@ -261,7 +262,7 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
 
     if(vizu) {
-        imshow("SRG-Tools || NMPT Salience || Press Q to Quit", viz);
+        imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
     }
 }
 
