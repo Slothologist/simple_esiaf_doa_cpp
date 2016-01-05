@@ -491,6 +491,10 @@ int main (int argc, char * const argv[])
     cv::Mat frame_s;
     cv::Mat frame_f;
 
+    frame = grab.getImage();
+
+    ulseep(100000);
+
     while (cv::waitKey(1) <= 0) {
 
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
