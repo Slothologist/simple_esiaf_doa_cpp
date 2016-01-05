@@ -133,10 +133,9 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
     }
     // Display it all on the screen
     if (viz) {
-        if(fit) {
-            win.clear_overlay();
-        }
+        win.clear_overlay();
         win.set_image(cimg);
+        win.add_overlay(faces, dlib::rgb_pixel(255,0,0));
         if(fit) {
             win.add_overlay(render_face_detections(shapes));
         }
