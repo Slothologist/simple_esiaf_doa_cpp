@@ -493,7 +493,7 @@ int main (int argc, char * const argv[])
 
     frame = grab.getImage();
 
-    ulseep(100000);
+    usleep(100000);
 
     while (cv::waitKey(1) <= 0) {
 
