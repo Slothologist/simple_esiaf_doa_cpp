@@ -44,6 +44,10 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
+// THREADING
+#include <thread>
+#include <mutex>
+
 using namespace std;
 using namespace cv;
 using namespace boost;
@@ -261,6 +265,60 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     }
 }
 
+// Find Most Salient Point and Publish
+class Grabber
+{
+    public:
+      Grabber();
+      ~Grabber();
+      void grabImage();
+      void setCapture(int _argc, const char *_argv[]);
+      int getCamera();
+      cv::Mat getImage();
+    protected:
+      VideoCapture cap;
+      cv::Mat frame;
+      std::mutex mtx;
+      int usingCamera;
+};
+
+Grabber::Grabber() {}
+
+Grabber::~Grabber(){}
+
+void Grabber::setCapture(int _argc, const char* _argv[]) {
+    Size imSize(320,240);
+    VideoCapture capture;
+    cap = capture;
+    usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(cap, _argc, _argv);
+    if (!usingCamera--) {
+        cout << "Sorry no static video file support for now" << endl;
+        exit(1);
+    }
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
+    cap.set(CV_CAP_PROP_FPS, 30);
+}
+
+int Grabber::getCamera(){
+    return usingCamera;
+}
+
+void Grabber::grabImage()
+{
+  while(1) {
+    mtx.lock();
+    cap >> frame;
+    mtx.unlock();
+    usleep(1000);
+  }
+}
+
+cv::Mat Grabber::getImage()
+{
+    return frame;
+}
+
 
 int main (int argc, char * const argv[])
 {
@@ -408,30 +466,13 @@ int main (int argc, char * const argv[])
 
     } catch(std::exception& e) { cout << e.what() << "\n"; }
 
+    // Grabber Thread
+    Grabber grab;
+    grab.setCapture(argc, (const char**) argv);
+    thread g_t(&Grabber::grabImage, &grab);
+
     // ROS
     ros::init(argc, (char **) argv, "robotgazetools");
-
-    Size imSize(320,240);
-
-    // CV Set Capture Device
-    VideoCapture capture;
-\
-    int usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(capture, argc, (const char**)argv);
-
-    if (!usingCamera--) {
-        cout << "Sorry no static video file support for now" << endl;
-        exit(1);
-    }
-
-    cv::Mat frame;
-    cv::Mat frame_s;
-    cv::Mat frame_f;
-
-    if (usingCamera) {
-        capture.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
-        capture.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
-        capture.set(CV_CAP_PROP_FPS, 30);
-    }
 
     // DLIB
     Faces fac;
@@ -442,14 +483,18 @@ int main (int argc, char * const argv[])
     // NMPT
     Saliency sal;
     if(saliency_flag){
-        sal.setup(usingCamera, viz_flag);
+        sal.setup(grab.getCamera(), viz_flag);
     }
+
+    cv::Mat frame;
+    cv::Mat frame_s;
+    cv::Mat frame_f;
 
     while (cv::waitKey(1) <= 0) {
 
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
-        capture >> frame;
+        frame = grab.getImage();
 
         if(timing_flag) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
