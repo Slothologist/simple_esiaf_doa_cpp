@@ -137,7 +137,7 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
     }
     // Display it all on the screen
     if (viz) {
-        win.set_title("Simple Robot Gaze Tools || DLIB Faces");
+        win.set_title("Simple Robot Gaze Tools || DLIB");
         win.clear_overlay();
         win.set_image(cimg);
         win.add_overlay(faces, dlib::rgb_pixel(255,0,0));
