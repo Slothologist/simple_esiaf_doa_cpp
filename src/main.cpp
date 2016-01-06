@@ -55,15 +55,75 @@ using namespace boost::program_options;
 using namespace boost::posix_time;
 
 
+// Grab an Image from Camera
+class Grabber
+{
+    public:
+      Grabber();
+      ~Grabber();
+      void grabImage();
+      void setCapture(int _argc, const char *_argv[]);
+      int getCamera();
+      cv::Mat getImage();
+    protected:
+      VideoCapture cap;
+      cv::Mat frame;
+      cv::Mat frame_copy;
+      std::recursive_mutex mtx;
+      int usingCamera;
+};
+
+Grabber::Grabber() {}
+
+Grabber::~Grabber() {}
+
+void Grabber::setCapture(int _argc, const char* _argv[]) {
+    Size imSize(320,240);
+    VideoCapture capture;
+    cap = capture;
+    usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(cap, _argc, _argv);
+    if (!usingCamera--) {
+        cout << "Sorry no static video file support for now" << endl;
+        exit(1);
+    }
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
+    cap.set(CV_CAP_PROP_FPS, 30);
+}
+
+int Grabber::getCamera(){
+    return usingCamera;
+}
+
+void Grabber::grabImage()
+{
+  while(1) {
+    mtx.lock();
+    cap >> frame;
+    mtx.unlock();
+    // Sleep for 5ms in order to allow other
+    // functions to aquire the lock.
+    usleep(1000);
+  }
+}
+
+cv::Mat Grabber::getImage()
+{
+    mtx.lock();
+    frame_copy = frame.clone();
+    mtx.unlock();
+    return frame_copy;
+}
+
+
 // Find Faces and Publish
 class Faces
 {
     public:
       Faces();
       ~Faces();
-      void getFaces(cv::Mat img, std_msgs::Header header);
-      void setPath(String path, bool _vis, bool _fit);
-
+      void getFaces();
+      void setPath(Grabber* grab, String path, bool _vis, bool _fit);
     protected:
       // DLIB
       dlib::frontal_face_detector detector;
@@ -73,20 +133,24 @@ class Faces
       ros::NodeHandle n;
       ros::Publisher pub_f;
       // SELF
+      Grabber* grabber;
       bool viz, fit;
 };
 
 Faces::Faces(){
     this->pub_f = n.advertise<people_msgs::People>("robotgazetools/faces", 10);
 }
+
 Faces::~Faces(){}
 
-void Faces::setPath(String path, bool _vis, bool _fit)
+void Faces::setPath(Grabber* grab, String path, bool _vis, bool _fit)
 {
+    grabber = grab;
     viz = _vis;
     fit = _fit;
 
     detector = dlib::get_frontal_face_detector();
+
     try {
         dlib::deserialize(path) >> pose_model;
     } catch(dlib::serialization_error& e) {
@@ -99,13 +163,25 @@ void Faces::setPath(String path, bool _vis, bool _fit)
 }
 
 
-void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
+void Faces::getFaces()
 {
+    cv::Mat im = grabber->getImage();
+
+    // If no image has been grabbed yet...wait.
+    if (im.rows == 0 || im.cols == 0) {
+        cout << "Faces: waiting for next image to be grabbed..." << endl;
+        return;
+    }
+
+    std_msgs::Header h;
+    h.stamp = ros::Time::now();
+    h.frame_id = "1";
+
     // ROS MSGS
     people_msgs::People people_msg;
     people_msgs::Person person_msg;
 
-    dlib::cv_image<dlib::bgr_pixel> cimg(_img);
+    dlib::cv_image<dlib::bgr_pixel> cimg(im);
 
     // Detect faces
     std::vector<dlib::rectangle> faces = detector(cimg);
@@ -117,6 +193,7 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
             shapes.push_back(pose_model(cimg, faces[i]));
         }
     }
+
     for(unsigned long i = 0; i < faces.size(); ++i) {
         // cout << "left: " << faces[i].left() << " top: " << faces[i].top() << endl;
         // cout << "right: " << faces[i].right() << " bottom: " << faces[i].bottom() << endl;
@@ -132,7 +209,7 @@ void Faces::getFaces(cv::Mat _img, std_msgs::Header header)
         people_msg.people.push_back(person_msg);
     }
     if(people_msg.people.size() > 0){
-        people_msg.header = header;
+        people_msg.header = h;
         pub_f.publish(people_msg);
     }
     // Display it all on the screen
@@ -153,8 +230,8 @@ class Saliency
     public:
       Saliency();
       ~Saliency();
-      void getSaliency(cv::Mat img, std_msgs::Header header);
-      void setup(int camera, bool _vis);
+      void getSaliency();
+      void setup(Grabber* grab, int camera, bool _vis);
     protected:
       // NMPT
       BlockTimer bt;
@@ -165,6 +242,7 @@ class Saliency
       ros::Publisher pub_s;
       // SELF
       bool vizu;
+      Grabber* grabber;
       // NMPT-2
       /**
        * @param numtemporal Number of timescales of Difference of Expontential filters to track.
@@ -187,8 +265,9 @@ Saliency::Saliency() {
 
 Saliency::~Saliency(){}
 
-void Saliency::setup(int camera, bool _vis) {
+void Saliency::setup(Grabber* grab, int camera, bool _vis) {
     cout << ">>> Setting up Saliency..." << endl;
+    grabber = grab;
     usingCamera = camera;
     bt.blockRestart(1);
     salientSpot.setTrackerTarget(lqrpt);
@@ -197,8 +276,20 @@ void Saliency::setup(int camera, bool _vis) {
     cout << ">>> Done!" << endl;
 }
 
-void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
+void Saliency::getSaliency()
 {
+    cv::Mat im = grabber->getImage();
+
+    // If no image has been grabbed yet...wait.
+    if (im.rows == 0 || im.cols == 0) {
+        cout << "Saliency: waiting for next image to be grabbed..." << endl;
+        return;
+    }
+
+    std_msgs::Header h;
+    h.stamp = ros::Time::now();
+    h.frame_id = "1";
+
     double saltime, tottime;
 
     // Time me
@@ -248,7 +339,7 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     p.y = mid_y;
     p.z = pts.size();
     ps.point = p;
-    ps.header = header;
+    ps.header = h;
     pub_s.publish(ps);
 
     tottime = bt.getCurrTime(1);
@@ -264,60 +355,6 @@ void Saliency::getSaliency(cv::Mat im, std_msgs::Header header)
     if(vizu) {
         imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
     }
-}
-
-// Find Most Salient Point and Publish
-class Grabber
-{
-    public:
-      Grabber();
-      ~Grabber();
-      void grabImage();
-      void setCapture(int _argc, const char *_argv[]);
-      int getCamera();
-      cv::Mat getImage();
-    protected:
-      VideoCapture cap;
-      cv::Mat frame;
-      std::mutex mtx;
-      int usingCamera;
-};
-
-Grabber::Grabber() {}
-
-Grabber::~Grabber(){}
-
-void Grabber::setCapture(int _argc, const char* _argv[]) {
-    Size imSize(320,240);
-    VideoCapture capture;
-    cap = capture;
-    usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(cap, _argc, _argv);
-    if (!usingCamera--) {
-        cout << "Sorry no static video file support for now" << endl;
-        exit(1);
-    }
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
-    cap.set(CV_CAP_PROP_FPS, 30);
-}
-
-int Grabber::getCamera(){
-    return usingCamera;
-}
-
-void Grabber::grabImage()
-{
-  while(1) {
-    mtx.lock();
-    cap >> frame;
-    mtx.unlock();
-    usleep(1000);
-  }
-}
-
-cv::Mat Grabber::getImage()
-{
-    return frame;
 }
 
 
@@ -467,39 +504,30 @@ int main (int argc, char * const argv[])
 
     } catch(std::exception& e) { cout << e.what() << "\n"; }
 
+    // ROS
+    ros::init(argc, (char **) argv, "robotgazetools");
+
     // Grabber Thread
     Grabber grab;
     grab.setCapture(argc, (const char**) argv);
     thread g_t(&Grabber::grabImage, &grab);
 
-    // ROS
-    ros::init(argc, (char **) argv, "robotgazetools");
-
     // DLIB
     Faces fac;
     if(faces_flag) {
-        fac.setPath(dlib_path, viz_flag, fit_flag);
+        fac.setPath(&grab, dlib_path, viz_flag, fit_flag);
+
     }
 
     // NMPT
     Saliency sal;
     if(saliency_flag){
-        sal.setup(grab.getCamera(), viz_flag);
+        sal.setup(&grab, grab.getCamera(), viz_flag);
     }
 
-    cv::Mat frame;
-    cv::Mat frame_s;
-    cv::Mat frame_f;
-
-    frame = grab.getImage();
-
-    usleep(100000);
-
-    while (cv::waitKey(1) <= 0) {
+    while(cv::waitKey(1) <= 0) {
 
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
-
-        frame = grab.getImage();
 
         if(timing_flag) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
@@ -507,18 +535,12 @@ int main (int argc, char * const argv[])
             cout << "[Capture] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
         }
 
-        std_msgs::Header h;
-        h.stamp = ros::Time::now();
-        h.frame_id = "1";
-
-        if (faces_flag) {
-            frame_f = frame.clone();
-            fac.getFaces(frame_f, h);
+        if(faces_flag){
+            fac.getFaces();
         }
 
-        if (saliency_flag) {
-            frame_s = frame.clone();
-            sal.getSaliency(frame_s, h);
+        if(saliency_flag){
+            sal.getSaliency();
         }
 
         // ROS Spinner (send messages trigger loop)
