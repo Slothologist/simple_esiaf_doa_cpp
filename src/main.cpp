@@ -103,7 +103,7 @@ void Grabber::grabImage()
     mtx.unlock();
     // Sleep for 5ms in order to allow other
     // functions to aquire the lock.
-    usleep(1000);
+    usleep(5000);
   }
 }
 
@@ -122,7 +122,8 @@ class Faces
     public:
       Faces();
       ~Faces();
-      void getFaces();
+      void getFaces(bool faces_flag, bool timing);
+      bool getReady();
       void setPath(Grabber* grab, String path, bool _vis, bool _fit);
     protected:
       // DLIB
@@ -134,25 +135,30 @@ class Faces
       ros::Publisher pub_f;
       // SELF
       Grabber* grabber;
-      bool viz, fit;
+      bool viz, fit, ready;
 };
 
 Faces::Faces(){
+    ready = false;
     this->pub_f = n.advertise<people_msgs::People>("robotgazetools/faces", 10);
 }
 
 Faces::~Faces(){}
+
+bool Faces::getReady() {
+    return ready;
+}
 
 void Faces::setPath(Grabber* grab, String path, bool _vis, bool _fit)
 {
     grabber = grab;
     viz = _vis;
     fit = _fit;
-
     detector = dlib::get_frontal_face_detector();
 
     try {
         dlib::deserialize(path) >> pose_model;
+        ready = true;
     } catch(dlib::serialization_error& e) {
         cout << "You need dlib's default face landmarking model file to run this example." << endl;
         cout << "You can get it from the following URL: " << endl;
@@ -163,64 +169,82 @@ void Faces::setPath(Grabber* grab, String path, bool _vis, bool _fit)
 }
 
 
-void Faces::getFaces()
+void Faces::getFaces(bool faces_flag, bool timing)
 {
-    cv::Mat im = grabber->getImage();
+    while(1) {
 
-    // If no image has been grabbed yet...wait.
-    if (im.rows == 0 || im.cols == 0) {
-        cout << "Faces: waiting for next image to be grabbed..." << endl;
-        return;
-    }
-
-    std_msgs::Header h;
-    h.stamp = ros::Time::now();
-    h.frame_id = "1";
-
-    // ROS MSGS
-    people_msgs::People people_msg;
-    people_msgs::Person person_msg;
-
-    dlib::cv_image<dlib::bgr_pixel> cimg(im);
-
-    // Detect faces
-    std::vector<dlib::rectangle> faces = detector(cimg);
-
-    // Find the pose of each face.
-    std::vector<dlib::full_object_detection> shapes;
-    if(fit) {
-        for (unsigned long i = 0; i < faces.size(); ++i) {
-            shapes.push_back(pose_model(cimg, faces[i]));
+        if (!faces_flag) {
+            usleep(5000);
+            return;
         }
-    }
 
-    for(unsigned long i = 0; i < faces.size(); ++i) {
-        // cout << "left: " << faces[i].left() << " top: " << faces[i].top() << endl;
-        // cout << "right: " << faces[i].right() << " bottom: " << faces[i].bottom() << endl;
-        person_msg.name = "unknown";
-        person_msg.reliability = 0.0;
-        geometry_msgs::Point p;
-        double mid_x = (faces[i].left() + faces[i].right())/2.0;
-        double mid_y = (faces[i].top() + faces[i].bottom())/2.0;
-        p.x = mid_x;
-        p.y = mid_y;
-        p.z = faces[i].right() - faces[i].left();
-        person_msg.position = p;
-        people_msg.people.push_back(person_msg);
-    }
-    if(people_msg.people.size() > 0){
-        people_msg.header = h;
-        pub_f.publish(people_msg);
-    }
-    // Display it all on the screen
-    if (viz) {
-        win.set_title("Simple Robot Gaze Tools || DLIB");
-        win.clear_overlay();
-        win.set_image(cimg);
-        win.add_overlay(faces, dlib::rgb_pixel(255,0,0));
+        boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
+
+        cv::Mat im = grabber->getImage();
+
+        // If no image has been grabbed yet...wait.
+        if (im.rows == 0 || im.cols == 0) {
+            cout << "Faces: waiting for next image to be grabbed..." << endl;
+            return;
+        }
+
+        std_msgs::Header h;
+        h.stamp = ros::Time::now();
+        h.frame_id = "1";
+
+        // ROS MSGS
+        people_msgs::People people_msg;
+        people_msgs::Person person_msg;
+
+        dlib::cv_image<dlib::bgr_pixel> cimg(im);
+
+        // Detect faces
+        std::vector<dlib::rectangle> faces = detector(cimg);
+
+        // Find the pose of each face.
+        std::vector<dlib::full_object_detection> shapes;
         if(fit) {
-            win.add_overlay(render_face_detections(shapes));
+            for (unsigned long i = 0; i < faces.size(); ++i) {
+                shapes.push_back(pose_model(cimg, faces[i]));
+            }
         }
+
+        for(unsigned long i = 0; i < faces.size(); ++i) {
+            // cout << "left: " << faces[i].left() << " top: " << faces[i].top() << endl;
+            // cout << "right: " << faces[i].right() << " bottom: " << faces[i].bottom() << endl;
+            person_msg.name = "unknown";
+            person_msg.reliability = 0.0;
+            geometry_msgs::Point p;
+            double mid_x = (faces[i].left() + faces[i].right())/2.0;
+            double mid_y = (faces[i].top() + faces[i].bottom())/2.0;
+            p.x = mid_x;
+            p.y = mid_y;
+            p.z = faces[i].right() - faces[i].left();
+            person_msg.position = p;
+            people_msg.people.push_back(person_msg);
+        }
+        if(people_msg.people.size() > 0){
+            people_msg.header = h;
+            pub_f.publish(people_msg);
+        }
+        // Display it all on the screen
+        if (viz) {
+            win.set_title("Simple Robot Gaze Tools || DLIB");
+            win.clear_overlay();
+            win.set_image(cimg);
+            win.add_overlay(faces, dlib::rgb_pixel(255,0,0));
+            if(fit) {
+                win.add_overlay(render_face_detections(shapes));
+            }
+        }
+
+        if(timing) {
+            boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration cdiff = c - init;
+            cout << "[FACES] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
+        }
+
+        usleep(1000);
     }
 }
 
@@ -230,7 +254,7 @@ class Saliency
     public:
       Saliency();
       ~Saliency();
-      void getSaliency();
+      void getSaliency(bool saliency_flag, bool timing);
       void setup(Grabber* grab, int camera, bool _vis);
     protected:
       // NMPT
@@ -276,84 +300,102 @@ void Saliency::setup(Grabber* grab, int camera, bool _vis) {
     cout << ">>> Done!" << endl;
 }
 
-void Saliency::getSaliency()
+void Saliency::getSaliency(bool saliency_flag, bool timing)
 {
-    cv::Mat im = grabber->getImage();
+    while(1) {
 
-    // If no image has been grabbed yet...wait.
-    if (im.rows == 0 || im.cols == 0) {
-        cout << "Saliency: waiting for next image to be grabbed..." << endl;
-        return;
-    }
+        if (!saliency_flag) {
+            usleep(5000);
+            return;
+        }
 
-    std_msgs::Header h;
-    h.stamp = ros::Time::now();
-    h.frame_id = "1";
+        boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
-    double saltime, tottime;
+        cv::Mat im = grabber->getImage();
 
-    // Time me
-    bt.blockRestart(0);
+        // If no image has been grabbed yet...wait.
+        if (im.rows == 0 || im.cols == 0) {
+            cout << "Saliency: waiting for next image to be grabbed..." << endl;
+            return;
+        }
 
-    viz.create(im.rows, im.cols*2, CV_32FC3);
+        std_msgs::Header h;
+        h.stamp = ros::Time::now();
+        h.frame_id = "1";
 
-    vector<KeyPoint> pts;
-    salTracker.detect(im, pts);
-    saltime = bt.getCurrTime(0) ;
+        double saltime, tottime;
 
-    salTracker.getSalImage(sal);
+        // Time me
+        bt.blockRestart(0);
 
-    double min, max;
-    Point minloc, maxloc;
-    minMaxLoc(sal, &min, &max, &minloc, &maxloc);
+        viz.create(im.rows, im.cols*2, CV_32FC3);
 
-    lqrpt[0] = maxloc.x*1.0 / sal.cols;
-    lqrpt[1] = maxloc.y*1.0 / sal.rows;
+        vector<KeyPoint> pts;
+        salTracker.detect(im, pts);
+        saltime = bt.getCurrTime(0) ;
 
-    salientSpot.setTrackerTarget(lqrpt);
+        salTracker.getSalImage(sal);
 
-    Mat vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
-    cvtColor(sal, vizRect, CV_GRAY2BGR);
+        double min, max;
+        Point minloc, maxloc;
+        minMaxLoc(sal, &min, &max, &minloc, &maxloc);
 
-    vizRect = viz(Rect(0, 0, im.cols, im.rows));
-    im.convertTo(vizRect,CV_32F, 1./256.);
+        lqrpt[0] = maxloc.x*1.0 / sal.cols;
+        lqrpt[1] = maxloc.y*1.0 / sal.rows;
 
-    for (size_t i = 0; i < pts.size(); i++) {
-        circle(vizRect, pts[i].pt, 2, CV_RGB(0,255,0));
-    }
+        salientSpot.setTrackerTarget(lqrpt);
 
-    salientSpot.updateTrackerPosition();
-    lqrpt = salientSpot.getCurrentPosition();
+        Mat vizRect = viz(Rect(im.cols,0,im.cols, im.rows));
+        cvtColor(sal, vizRect, CV_GRAY2BGR);
 
-    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 6, CV_RGB(0,0,255));
-    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 5, CV_RGB(0,0,255));
-    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 4, CV_RGB(255,255,0));
-    circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 3, CV_RGB(255,255,0));
+        vizRect = viz(Rect(0, 0, im.cols, im.rows));
+        im.convertTo(vizRect,CV_32F, 1./256.);
 
-    // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.rows << endl;
-    geometry_msgs::PointStamped ps;
-    geometry_msgs::Point p;
-    double mid_x = lqrpt[0]*sal.cols;
-    double mid_y = lqrpt[1]*sal.rows;
-    p.x = mid_x;
-    p.y = mid_y;
-    p.z = pts.size();
-    ps.point = p;
-    ps.header = h;
-    pub_s.publish(ps);
+        for (size_t i = 0; i < pts.size(); i++) {
+            circle(vizRect, pts[i].pt, 2, CV_RGB(0,255,0));
+        }
 
-    tottime = bt.getCurrTime(1);
+        salientSpot.updateTrackerPosition();
+        lqrpt = salientSpot.getCurrentPosition();
 
-    // Stop Timer
-    bt.blockRestart(1);
+        circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 6, CV_RGB(0,0,255));
+        circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 5, CV_RGB(0,0,255));
+        circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 4, CV_RGB(255,255,0));
+        circle(vizRect, Point(lqrpt[0]*sal.cols, lqrpt[1]*sal.rows), 3, CV_RGB(255,255,0));
 
-    stringstream text;
-    text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
+        // cout << "Most Salient Point: X " << lqrpt[0]*sal.cols << " Y " << lqrpt[1]*sal.rows << endl;
+        geometry_msgs::PointStamped ps;
+        geometry_msgs::Point p;
+        double mid_x = lqrpt[0]*sal.cols;
+        double mid_y = lqrpt[1]*sal.rows;
+        p.x = mid_x;
+        p.y = mid_y;
+        p.z = pts.size();
+        ps.point = p;
+        ps.header = h;
+        pub_s.publish(ps);
 
-    putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
+        tottime = bt.getCurrTime(1);
 
-    if(vizu) {
-        imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
+        // Stop Timer
+        bt.blockRestart(1);
+
+        stringstream text;
+        text << "FastSUN: " << (int)(saltime*1000) << " ms ; Total: " << (int)(tottime*1000) << " ms.";
+
+        putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
+
+        if(vizu) {
+            imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
+        }
+
+        if(timing) {
+            boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
+            boost::posix_time::time_duration cdiff = c - init;
+            cout << "[SALIENCY] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
+        }
+
+        usleep(1000);
     }
 }
 
@@ -516,40 +558,18 @@ int main (int argc, char * const argv[])
     Faces fac;
     if(faces_flag) {
         fac.setPath(&grab, dlib_path, viz_flag, fit_flag);
-
     }
+    thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
 
     // NMPT
     Saliency sal;
     if(saliency_flag){
         sal.setup(&grab, grab.getCamera(), viz_flag);
     }
+    thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 
     while(cv::waitKey(1) <= 0) {
-
-        boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
-
-        if(timing_flag) {
-            boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration cdiff = c - init;
-            cout << "[Capture] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
-        }
-
-        if(faces_flag){
-            fac.getFaces();
-        }
-
-        if(saliency_flag){
-            sal.getSaliency();
-        }
-
         // ROS Spinner (send messages trigger loop)
         ros::spinOnce();
-
-        if(timing_flag) {
-            boost::posix_time::ptime a = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration adiff = a - init;
-            cout << "[Main Loop] Time Consumption: " << adiff.total_milliseconds() << " ms" << std::endl;
-        }
     }
 }
