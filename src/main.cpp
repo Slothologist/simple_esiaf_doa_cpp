@@ -185,7 +185,7 @@ void Faces::getFaces(bool faces_flag, bool timing)
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
             cout << "Faces: waiting for next image to be grabbed..." << endl;
-            return;
+            continue;
         }
 
         std_msgs::Header h;
@@ -314,7 +314,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
             cout << "Saliency: waiting for next image to be grabbed..." << endl;
-            return;
+            continue;
         }
 
         std_msgs::Header h;
