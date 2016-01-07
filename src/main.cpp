@@ -243,8 +243,6 @@ void Faces::getFaces(bool faces_flag, bool timing)
             boost::posix_time::time_duration cdiff = c - init;
             cout << "[FACES] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
         }
-
-        usleep(1000);
     }
 }
 
@@ -302,7 +300,7 @@ void Saliency::setup(Grabber* grab, int camera, bool _vis) {
 
 void Saliency::getSaliency(bool saliency_flag, bool timing)
 {
-    while(1) {
+    while(cv::waitKey(1) <= 0) {
 
         if (!saliency_flag) {
             usleep(5000);
@@ -394,8 +392,6 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
             boost::posix_time::time_duration cdiff = c - init;
             cout << "[SALIENCY] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
         }
-
-        usleep(1000);
     }
 }
 
@@ -568,8 +564,11 @@ int main (int argc, char * const argv[])
     }
     thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 
+    // 100 hz
+    ros::Rate r(100);
+
     while(cv::waitKey(1) <= 0) {
-        // ROS Spinner (send messages trigger loop)
         ros::spinOnce();
+        r.sleep();
     }
 }
