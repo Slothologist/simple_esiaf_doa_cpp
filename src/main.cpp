@@ -209,6 +209,7 @@ void Faces::getFaces(bool faces_flag, bool timing)
             continue;
         }
 
+        old = h.stamp;
         std_msgs::Header h;
         h.stamp = grabber->getTime();
         h.frame_id = "1";
@@ -330,6 +331,8 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
             usleep(5000);
             return;
         }
+
+        old = h.stamp;
 
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
