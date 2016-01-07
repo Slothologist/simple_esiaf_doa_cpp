@@ -204,15 +204,15 @@ void Faces::getFaces(bool faces_flag, bool timing)
             continue;
         }
 
-        if (h.stamp <= old){
-            ulseep(1000);
-            continue;
-        }
-
-        old = h.stamp;
         std_msgs::Header h;
         h.stamp = grabber->getTime();
         h.frame_id = "1";
+
+        if (h.stamp <= old){
+            usleep(1000);
+            continue;
+        }
+        old = h.stamp;
 
         // ROS MSGS
         people_msgs::People people_msg;
@@ -332,8 +332,6 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
             return;
         }
 
-        old = h.stamp;
-
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
         cv::Mat im = grabber->getImage();
@@ -347,10 +345,11 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         std_msgs::Header h;
         h.stamp = grabber->getTime();
         if (h.stamp <= old){
-            ulseep(1000);
+            usleep(1000);
             continue;
         }
         h.frame_id = "1";
+        old = h.stamp;
 
         double saltime, tottime;
 
