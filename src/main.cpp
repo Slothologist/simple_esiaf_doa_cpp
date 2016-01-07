@@ -62,9 +62,12 @@ class Grabber
       Grabber();
       ~Grabber();
       void grabImage();
+      ros::Time getTime();
       void setCapture(int _argc, const char *_argv[], int framerate);
       int getCamera();
       cv::Mat getImage();
+      ros::Time timestamp;
+      ros::Time timestamp_copy;
     protected:
       VideoCapture cap;
       cv::Mat frame;
@@ -98,12 +101,14 @@ int Grabber::getCamera(){
 void Grabber::grabImage()
 {
   while(1) {
-    mtx.lock();
-    cap >> frame;
-    mtx.unlock();
-    // Sleep for 5ms in order to allow other
-    // functions to aquire the lock.
-    usleep(5000);
+    if (cap.grab()){
+        mtx.lock();
+        timestamp = ros::Time::now();
+        if (!cap.retrieve(frame)){
+                printf("ERROR: failed to rtetrieve image\n");
+        }
+        mtx.unlock();
+    }
   }
 }
 
@@ -113,6 +118,14 @@ cv::Mat Grabber::getImage()
     frame_copy = frame.clone();
     mtx.unlock();
     return frame_copy;
+}
+
+cv::Mat Grabber::getTime()
+{
+    mtx.lock();
+    timestamp_copy = timestamp;
+    mtx.unlock();
+    return timestamp_copy;
 }
 
 
@@ -189,7 +202,7 @@ void Faces::getFaces(bool faces_flag, bool timing)
         }
 
         std_msgs::Header h;
-        h.stamp = ros::Time::now();
+        h.stamp = grabber->getTime();
         h.frame_id = "1";
 
         // ROS MSGS
@@ -318,7 +331,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         }
 
         std_msgs::Header h;
-        h.stamp = ros::Time::now();
+        h.stamp = h.stamp = grabber->getTime();
         h.frame_id = "1";
 
         double saltime, tottime;
@@ -384,7 +397,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
 
         if(vizu) {
-            cv::imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
+            imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
         }
 
         cout << "running" << endl;
@@ -560,6 +573,9 @@ int main (int argc, char * const argv[])
 
     // ROS
     ros::init(argc, (char **) argv, "robotgazetools");
+
+    // Workaround for 2 Threads using imshow()
+    namedWindow("O_O");
 
     // Grabber Thread
     Grabber grab;
