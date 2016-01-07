@@ -62,7 +62,7 @@ class Grabber
       Grabber();
       ~Grabber();
       void grabImage();
-      void setCapture(int _argc, const char *_argv[]);
+      void setCapture(int _argc, const char *_argv[], int framerate);
       int getCamera();
       cv::Mat getImage();
     protected:
@@ -77,7 +77,7 @@ Grabber::Grabber() {}
 
 Grabber::~Grabber() {}
 
-void Grabber::setCapture(int _argc, const char* _argv[]) {
+void Grabber::setCapture(int _argc, const char* _argv[], int framerate) {
     Size imSize(320,240);
     VideoCapture capture;
     cap = capture;
@@ -88,7 +88,7 @@ void Grabber::setCapture(int _argc, const char* _argv[]) {
     }
     cap.set(CV_CAP_PROP_FRAME_WIDTH, imSize.width);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, imSize.height);
-    cap.set(CV_CAP_PROP_FPS, 30);
+    cap.set(CV_CAP_PROP_FPS, framerate);
 }
 
 int Grabber::getCamera(){
@@ -387,6 +387,8 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
             imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
         }
 
+        cout << "running" << endl;
+
         if(timing) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
             boost::posix_time::time_duration cdiff = c - init;
@@ -405,6 +407,7 @@ int main (int argc, char * const argv[])
     bool saliency_flag = false;
     bool fit_flag = false;
     bool timing_flag = false;
+    int rate = 30;
 
     // Programm options
     try {
@@ -445,11 +448,16 @@ int main (int argc, char * const argv[])
             ("timing", value<string>(), "timing ON|OFF")
             ;
 
+        options_description framerate("framerate options");
+        timing.add_options()
+            ("framerate", value<int>()->default_value(30), "framerate <value> (default is 30)")
+            ;
+
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate);
 
         variables_map vm;
 
@@ -540,6 +548,14 @@ int main (int argc, char * const argv[])
             timing_flag = false;
         }
 
+        if (vm.count("framerate")) {
+            int f = vm["framerate"].as<int>();
+            rate = f;
+            cout << ">>> Framerate is: " << rate << "\n";
+        } else {
+            cout << ">>> Framerate is: " << rate << "\n";
+        }
+
     } catch(std::exception& e) { cout << e.what() << "\n"; }
 
     // ROS
@@ -547,7 +563,7 @@ int main (int argc, char * const argv[])
 
     // Grabber Thread
     Grabber grab;
-    grab.setCapture(argc, (const char**) argv);
+    grab.setCapture(argc, (const char**) argv, rate);
     thread g_t(&Grabber::grabImage, &grab);
 
     // DLIB
@@ -564,8 +580,7 @@ int main (int argc, char * const argv[])
     }
     thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 
-    // 100 hz
-    ros::Rate r(100);
+    ros::Rate r(rate);
 
     while(cv::waitKey(1) <= 0) {
         ros::spinOnce();
