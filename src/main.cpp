@@ -184,6 +184,9 @@ void Faces::setPath(Grabber* grab, String path, bool _vis, bool _fit)
 
 void Faces::getFaces(bool faces_flag, bool timing)
 {
+
+    ros::Time old = ros::Time::now();
+
     while(1) {
 
         if (!faces_flag) {
@@ -198,6 +201,11 @@ void Faces::getFaces(bool faces_flag, bool timing)
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
             cout << "Faces: waiting for next image to be grabbed..." << endl;
+            continue;
+        }
+
+        if (h.stamp <= old){
+            ulseep(1000);
             continue;
         }
 
@@ -313,6 +321,9 @@ void Saliency::setup(Grabber* grab, int camera, bool _vis) {
 
 void Saliency::getSaliency(bool saliency_flag, bool timing)
 {
+
+    ros::Time old = ros::Time::now();
+
     while(cv::waitKey(1) <= 0) {
 
         if (!saliency_flag) {
@@ -332,6 +343,10 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
 
         std_msgs::Header h;
         h.stamp = grabber->getTime();
+        if (h.stamp <= old){
+            ulseep(1000);
+            continue;
+        }
         h.frame_id = "1";
 
         double saltime, tottime;
@@ -594,7 +609,7 @@ int main (int argc, char * const argv[])
     }
     thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 
-    ros::Rate r(rate);
+    ros::Rate r(100);
 
     while(cv::waitKey(1) <= 0) {
         ros::spinOnce();
