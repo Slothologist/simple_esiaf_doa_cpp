@@ -120,7 +120,7 @@ cv::Mat Grabber::getImage()
     return frame_copy;
 }
 
-cv::Mat Grabber::getTime()
+ros::Time Grabber::getTime()
 {
     mtx.lock();
     timestamp_copy = timestamp;
@@ -331,7 +331,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         }
 
         std_msgs::Header h;
-        h.stamp = h.stamp = grabber->getTime();
+        h.stamp = grabber->getTime();
         h.frame_id = "1";
 
         double saltime, tottime;
@@ -575,7 +575,7 @@ int main (int argc, char * const argv[])
     ros::init(argc, (char **) argv, "robotgazetools");
 
     // Workaround for 2 Threads using imshow()
-    namedWindow("O_O");
+    namedWindow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit");
 
     // Grabber Thread
     Grabber grab;
