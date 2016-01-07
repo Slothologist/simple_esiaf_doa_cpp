@@ -105,7 +105,7 @@ void Grabber::grabImage()
         mtx.lock();
         timestamp = ros::Time::now();
         if (!cap.retrieve(frame)){
-                printf("ERROR: failed to rtetrieve image\n");
+                printf("ERROR: failed to retrieve image\n");
         }
         mtx.unlock();
     }
@@ -399,8 +399,6 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         if(vizu) {
             imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
         }
-
-        cout << "running" << endl;
 
         if(timing) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
