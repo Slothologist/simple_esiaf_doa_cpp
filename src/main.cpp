@@ -384,7 +384,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         putText(viz, text.str(), Point(20,20), FONT_HERSHEY_SIMPLEX, .33, Scalar(255,0,255));\
 
         if(vizu) {
-            imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
+            cv::imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
         }
 
         cout << "running" << endl;
