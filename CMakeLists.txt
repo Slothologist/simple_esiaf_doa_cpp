@@ -10,6 +10,7 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS system program_options)
 
 
 SET(OpenCV_MIN_VERSION "2.3.1")
+set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" )
 FIND_PATH(OpenCV_DIR NAMES opencv-config.cmake OpenCVConfig.cmake PATH_SUFFIXES lib/cmake lib)
 FIND_PACKAGE( OpenCV REQUIRED COMPONENTS core contrib features2d imgproc legacy objdetect video highgui)
 
@@ -29,6 +30,13 @@ ELSE()
 ENDIF()
 
 PKG_CHECK_MODULES(YAMLCPP REQUIRED yaml-cpp>=0.5)
+
+PKG_CHECK_MODULES(XIMEA REQUIRED xiapi>=4.3.6)
+IF (XIMEA_FOUND)
+  MESSAGE("-- using ximea xiAPI version ${XIMEA_VERSION} from ${XIMEA_PREFIX}")
+ELSE (XIMEA_FOUND)
+  message(FATAL_ERROR "ERROR: Cannot find ximea api")
+ENDIF (XIMEA_FOUND)
 
 SET(ROS_BUILD_TYPE Debug)
 SET(CMAKE_BUILD_TYPE DEBUG)
@@ -98,7 +106,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(BEFORE ${Boost_INCLUDE_DIRS})
-include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${XIMEA_INCLUDE_DIRS})
 
 link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${dlib_LIBRARIES} ${OpenCV_LIBRARIES})
 
