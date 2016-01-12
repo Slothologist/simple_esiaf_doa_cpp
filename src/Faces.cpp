@@ -10,6 +10,8 @@
 #include "boost/date_time/posix_time/posix_time.hpp"
 
 // DLIB
+#include <dlib/gui_widgets.h>
+#include <dlib/image_io.h>
 #include <dlib/opencv.h>
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/render_face_detections.h>
@@ -85,6 +87,9 @@ void Faces::getFaces(bool faces_flag, bool timing)
         people_msgs::Person person_msg;
 
         dlib::cv_image<dlib::bgr_pixel> cimg(im);
+
+        // UPSCALE IMAGE
+        // dlib::pyramid_up(cimg);
 
         // Detect faces
         std::vector<dlib::rectangle> faces = detector(cimg);
