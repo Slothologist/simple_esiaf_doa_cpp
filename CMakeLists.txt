@@ -103,7 +103,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(BEFORE ${Boost_INCLUDE_DIRS})
+include_directories(BEFORE include ${Boost_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${XIMEA_INCLUDE_DIRS})
 
 link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${dlib_LIBRARIES} ${OpenCV_LIBRARIES})
@@ -111,12 +111,14 @@ link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DI
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
 # Unfortuantely this is necessary for my ide (qt-creator) to resolve dependencies...
-file(GLOB DUMMY_HEADER_LIST RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} include/*.hpp src/*.hpp)
+file(GLOB DUMMY_HEADER_LIST RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} include/*.h src/*.h)
 
 add_executable(simple_robot_gaze_tools
-			src/main.cpp
-                        src/main.hpp
-			${DUMMY_HEADER_LIST}
+    src/main.cpp
+    src/Faces.cpp
+    src/Saliency.cpp
+    src/Grabber.cpp
+    ${DUMMY_HEADER_LIST}
 )
 
 #add_executable(dlib_example
