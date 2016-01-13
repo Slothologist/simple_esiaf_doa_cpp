@@ -30,7 +30,7 @@ bool Faces::getReady() {
     return ready;
 }
 
-void Faces::setPath(Grabber* grab, string path, bool _vis, bool _fit)
+void Faces::setPath(Grabber_XIMEA* grab, string path, bool _vis, bool _fit)
 {
     grabber = grab;
     viz = _vis;
@@ -64,7 +64,8 @@ void Faces::getFaces(bool faces_flag, bool timing)
 
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
-        cv::Mat im = grabber->getImage();
+        ros::Time frame_timestamp;
+        cv::Mat im = grabber->getImage(&frame_timestamp);
 
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
@@ -73,7 +74,7 @@ void Faces::getFaces(bool faces_flag, bool timing)
         }
 
         std_msgs::Header h;
-        h.stamp = grabber->getTime();
+        h.stamp = frame_timestamp;
         h.frame_id = "1";
 
         if (h.stamp <= old){

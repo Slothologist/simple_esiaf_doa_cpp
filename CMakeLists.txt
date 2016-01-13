@@ -118,6 +118,7 @@ add_executable(simple_robot_gaze_tools
     src/Faces.cpp
     src/Saliency.cpp
     src/Grabber.cpp
+    src/Grabber_XIMEA.cpp
     ${DUMMY_HEADER_LIST}
 )
 

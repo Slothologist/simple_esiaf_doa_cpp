@@ -11,12 +11,11 @@ class Grabber
       Grabber();
       ~Grabber();
       void grabImage();
-      ros::Time getTime();
       void setCapture(int _argc, const char *_argv[], int framerate);
       int getCamera();
-      cv::Mat getImage();
-      ros::Time timestamp;
+      cv::Mat getImage(ros::Time *target_timestamp);
     protected:
+      ros::Time timestamp;
       cv::VideoCapture cap;
       cv::Mat frame;
       std::recursive_mutex mtx;

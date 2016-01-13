@@ -32,6 +32,7 @@ void Grabber::grabImage()
   while(1) {
     if (cap.grab()){
         mtx.lock();
+        //NOTE: access to timestamp AND frame has to be locked by mutex!
         timestamp = ros::Time::now();
         if (!cap.retrieve(frame)){
                 printf("ERROR: failed to retrieve image\n");
@@ -41,20 +42,14 @@ void Grabber::grabImage()
   }
 }
 
-cv::Mat Grabber::getImage()
+cv::Mat Grabber::getImage(ros::Time *target_timestamp)
 {
     mtx.lock();
     cv::Mat frame_copy;
     frame_copy = frame.clone();
+    if (target_timestamp != NULL){
+        *target_timestamp = timestamp;
+    }
     mtx.unlock();
     return frame_copy;
-}
-
-ros::Time Grabber::getTime()
-{
-    mtx.lock();
-    ros::Time timestamp_copy;
-    timestamp_copy = timestamp;
-    mtx.unlock();
-    return timestamp_copy;
 }

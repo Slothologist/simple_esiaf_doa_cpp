@@ -19,7 +19,7 @@ Saliency::Saliency() {
 
 Saliency::~Saliency(){}
 
-void Saliency::setup(Grabber* grab, int camera, bool _vis) {
+void Saliency::setup(Grabber_XIMEA* grab, int camera, bool _vis) {
     cout << ">>> Setting up Saliency..." << endl;
     grabber = grab;
     usingCamera = camera;
@@ -44,7 +44,8 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
 
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
-        cv::Mat im = grabber->getImage();
+        ros::Time frame_timestamp;
+        cv::Mat im = grabber->getImage(&frame_timestamp);
 
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
@@ -53,7 +54,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing)
         }
 
         std_msgs::Header h;
-        h.stamp = grabber->getTime();
+        h.stamp = frame_timestamp;
         if (h.stamp <= old){
             usleep(1000);
             continue;

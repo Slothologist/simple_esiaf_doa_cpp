@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Grabber.h"
+#include "Grabber_XIMEA.h"
 #include <nmpt/BlockTimer.h>
 #include <nmpt/FastSalience.h>
 #include <nmpt/LQRPointTracker.h>
@@ -11,7 +12,7 @@ class Saliency
       Saliency();
       ~Saliency();
       void getSaliency(bool saliency_flag, bool timing);
-      void setup(Grabber* grab, int camera, bool _vis);
+      void setup(Grabber_XIMEA* grab, int camera, bool _vis);
     protected:
       // NMPT
       BlockTimer bt;
@@ -22,7 +23,7 @@ class Saliency
       ros::Publisher pub_s;
       // SELF
       bool vizu;
-      Grabber* grabber;
+      Grabber_XIMEA* grabber;
       // NMPT-2
       /**
        * @param numtemporal Number of timescales of Difference of Expontential filters to track.
