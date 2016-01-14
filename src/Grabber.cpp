@@ -2,15 +2,20 @@
 #include <nmpt/NMPTUtils.h>
 #include <iostream>
 #include "ros/ros.h"
+#include "m3api/xiApi.h"
+#include "boost/date_time/posix_time/posix_time.hpp"
 
 
 using namespace cv;
+using namespace std;
 
 Grabber::Grabber() {}
 Grabber::~Grabber() {}
 
 void Grabber::setCapture(int _argc, const char* _argv[], int framerate) {
-    Size imSize(320,240);
+
+    printf("OPENCV VERSION: %d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION);
+    cv::Size imSize(320,240);
     VideoCapture capture;
     cap = capture;
     usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(cap, _argc, _argv);
@@ -30,23 +35,34 @@ int Grabber::getCamera(){
 void Grabber::grabImage()
 {
   while(1) {
-    if (cap.grab()){
-        mtx.lock();
-        //NOTE: access to timestamp AND frame has to be locked by mutex!
-        timestamp = ros::Time::now();
-        if (!cap.retrieve(frame)){
-                printf("ERROR: failed to retrieve image\n");
+      boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
+      if (cap.grab()){
+        ros::Time frame_time = ros::Time::now();
+        boost::posix_time::ptime re = boost::posix_time::microsec_clock::local_time();
+        if (!cap.retrieve(source_frame)){
+                cerr << "ERROR: failed to retrieve image, DROPPED ONE FRAME!\n";
+                continue;
         }
+        boost::posix_time::ptime c3 = boost::posix_time::microsec_clock::local_time();
+        boost::posix_time::time_duration cdiff3 = c3 - re;
+        // cout << "[RETRIEVE] Time Consumption: " << cdiff3.total_milliseconds() << " ms" << std::endl;
+
+        // Copy
+        mtx.lock();
+        output_frame = resized_frame.clone();
+        timestamp = frame_time;
         mtx.unlock();
     }
+    boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
+    boost::posix_time::time_duration cdiff = c - init;
+    // cout << "[GRABBING] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
   }
 }
 
 cv::Mat Grabber::getImage(ros::Time *target_timestamp)
 {
     mtx.lock();
-    cv::Mat frame_copy;
-    frame_copy = frame.clone();
+    cv::Mat frame_copy = output_frame.clone();
     if (target_timestamp != NULL){
         *target_timestamp = timestamp;
     }

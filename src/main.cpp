@@ -36,6 +36,7 @@ int main (int argc, char * const argv[])
     bool saliency_flag = false;
     bool fit_flag = false;
     bool timing_flag = false;
+    bool ximea_flag = false;
     int rate = 30;
 
     // Programm options
@@ -78,15 +79,20 @@ int main (int argc, char * const argv[])
             ;
 
         options_description framerate("framerate options");
-        timing.add_options()
-            ("frameratfrontal_face_detectore", value<int>()->default_value(30), "framerate <value> (default is 30)")
+        framerate.add_options()
+            ("framerate", value<int>()->default_value(30), "framerate <value> (default is 30)")
+            ;
+
+        options_description ximea("ximea options");
+        ximea.add_options()
+            ("ximea", value<string>(), "ximea ON|OFF")
             ;
 
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(ximea);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(ximea);
 
         variables_map vm;
 
@@ -186,6 +192,20 @@ int main (int argc, char * const argv[])
             cout << ">>> Framerate is: " << rate << "\n";
         }
 
+        if (vm.count("ximea")) {
+            const string& s = vm["ximea"].as<string>();
+            if(s=="ON") {
+                cout << ">>> Using XIMEA: " << s << "\n";
+                ximea_flag = true;
+            } else {
+                 cout << ">>> Using XIMEA: " << s << "\n";
+                 ximea_flag = false;
+            }
+         } else {
+            cout << ">>> Using XIMEA: OFF" << "\n";
+            ximea_flag = false;
+        }
+
     } catch(std::exception& e) { cout << e.what() << "\n"; }
 
     // ROS
@@ -195,21 +215,31 @@ int main (int argc, char * const argv[])
     namedWindow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit");
 
     // Grabber Thread
-    Grabber_XIMEA grab;
-    grab.setCapture(argc, (const char**) argv, rate);
-    thread g_t(&Grabber_XIMEA::grabImage, &grab);
+    Grabber_XIMEA grabber_x;
+    Grabber grabber;
+
+
+    if(ximea_flag) {
+        grabber_x.setCapture(argc, (const char**) argv, rate);
+        thread g_t(&Grabber_XIMEA::grabImage, &grabber_x);
+    } else {
+        cout << "XIMEA ONLY FOR NOW" << endl;
+        exit(1);
+        //grabber.setCapture(argc, (const char**) argv, rate);
+        //thread g_t(&Grabber::grabImage, &grabber);
+    }
 
     // DLIB
     Faces fac;
     if(faces_flag) {
-        fac.setPath(&grab, dlib_path, viz_flag, fit_flag);
+        fac.setPath(&grabber_x, dlib_path, viz_flag, fit_flag);
     }
     thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
 
     // NMPT
     Saliency sal;
     if(saliency_flag){
-        sal.setup(&grab, grab.getCamera(), viz_flag);
+        sal.setup(&grabber_x, grabber_x.getCamera(), viz_flag);
     }
     thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 

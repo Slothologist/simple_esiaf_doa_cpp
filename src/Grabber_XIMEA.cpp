@@ -15,7 +15,7 @@ Grabber_XIMEA::~Grabber_XIMEA() {}
 
 void Grabber_XIMEA::setCapture(int _argc, const char* _argv[], int framerate) {
 
-    printf("opencv version: %d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION);
+    printf("OPENCV VERSION: %d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION);
     printf("xiapi %d\n", CV_CAP_XIAPI );
 
     VideoCapture capture(CV_CAP_XIAPI);
@@ -41,10 +41,10 @@ void Grabber_XIMEA::setCapture(int _argc, const char* _argv[], int framerate) {
     unsigned int source_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
     cout << "Source height " << source_height << " source width " << source_width << endl;
 
-    //code supports 2048x2048 and 2048x1080 cameras:
+    // Code supports 2048x2048 and 2048x1080 cameras:
     if ((source_width == 2040) && (source_height == 1080)){
         //2048x1080 sensor MQ022
-        cout << "detected MQ022 camera\n";
+        cout << "Detected MQ022 camera\n";
         unsigned int target_width = source_height * (4.0/3.0);
         unsigned int image_cutoff_w = (source_width - target_width)/2;
         cout << target_width << "\n";
@@ -53,7 +53,7 @@ void Grabber_XIMEA::setCapture(int _argc, const char* _argv[], int framerate) {
         cutout_roi = cv::Rect(image_cutoff_w/2, 0, target_width , source_height);
     }else if ((source_width == 2040) && (source_height == 2040)){
         //2048x2048 sensor MQ042
-        cout << "detected MQ042 camera\n";
+        cout << "Detected MQ042 camera\n";
         unsigned int resize_ratio = source_width  * (3.0/4.0);
         unsigned int image_cutoff_h = source_height-resize_ratio;
         cutout_roi = cv::Rect(0, image_cutoff_h/2, source_width , source_height-image_cutoff_h);
@@ -61,7 +61,7 @@ void Grabber_XIMEA::setCapture(int _argc, const char* _argv[], int framerate) {
         cerr << "WARNING: no supported camera detected (only MQ022 and MQ042 are supported)" << endl;
         exit(EXIT_FAILURE);
     }
-    cout << "resize roi is " << cutout_roi << "\n";
+    cout << "Resize roi is " << cutout_roi << "\n";
 }
 
 int Grabber_XIMEA::getCamera(){
@@ -71,7 +71,6 @@ int Grabber_XIMEA::getCamera(){
 void Grabber_XIMEA::grabImage()
 {
   cv::Size imSize(320,240);
-  // int count = 150;
   while(1) {
       boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
       if (cap.grab()){
@@ -83,7 +82,7 @@ void Grabber_XIMEA::grabImage()
         }
         boost::posix_time::ptime c3 = boost::posix_time::microsec_clock::local_time();
         boost::posix_time::time_duration cdiff3 = c3 - re;
-        cout << "[RETR] Time Consumption: " << cdiff3.total_milliseconds() << " ms" << std::endl;
+        // cout << "[RETR] Time Consumption: " << cdiff3.total_milliseconds() << " ms" << std::endl;
 
 
         boost::posix_time::ptime r = boost::posix_time::microsec_clock::local_time();
@@ -91,24 +90,23 @@ void Grabber_XIMEA::grabImage()
         // Crop
         Mat cropped = source_frame(cutout_roi);
 
-        //resize
+        // Resize
         Mat resized;
         resize(cropped, resized_frame, imSize, INTER_NEAREST);
 
         boost::posix_time::ptime c2 = boost::posix_time::microsec_clock::local_time();
         boost::posix_time::time_duration cdiff2 = c2 - r;
-        cout << "[RESIZE +CROP] Time Consumption: " << cdiff2.total_milliseconds() << " ms" << std::endl;
+        // cout << "[RESIZE +CROP] Time Consumption: " << cdiff2.total_milliseconds() << " ms" << std::endl;
 
-        //copy
+        // Copy
         mtx.lock();
         output_frame = resized_frame.clone();
         timestamp = frame_time;
         mtx.unlock();
-        // if (count-- ==0) while(1){ sleep(1); }
     }
     boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
     boost::posix_time::time_duration cdiff = c - init;
-    cout << "[GRABBING] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
+    // cout << "[GRABBING] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
   }
 }
 
