@@ -216,10 +216,10 @@ int main (int argc, char * const argv[])
 
     // Grabber Thread
     Grabber_XIMEA grabber_x;
-    Grabber grabber;
+    // Grabber grabber;
 
 
-    if(ximea_flag) {
+    /*if(ximea_flag) {
         grabber_x.setCapture(argc, (const char**) argv, rate);
         thread g_t(&Grabber_XIMEA::grabImage, &grabber_x);
     } else {
@@ -227,7 +227,10 @@ int main (int argc, char * const argv[])
         exit(1);
         //grabber.setCapture(argc, (const char**) argv, rate);
         //thread g_t(&Grabber::grabImage, &grabber);
-    }
+    }*/
+
+    grabber_x.setCapture(argc, (const char**) argv, rate);
+    thread g_t(&Grabber_XIMEA::grabImage, &grabber_x);
 
     // DLIB
     Faces fac;
