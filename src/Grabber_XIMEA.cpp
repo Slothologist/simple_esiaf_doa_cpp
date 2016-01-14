@@ -32,7 +32,7 @@ void Grabber_XIMEA::setCapture(int _argc, const char* _argv[], int framerate) {
     // XIMEA settings
     cap.set( CV_CAP_PROP_XI_AE_MAX_LIMIT, 20*1000);
     cap.set( CV_CAP_PROP_XI_RECENT_FRAME, 1);
-    cap.set( CV_CAP_PROP_XI_BUFFERS_QUEUE_SIZE, 3);
+    cap.set( CV_CAP_PROP_XI_BUFFERS_QUEUE_SIZE, 5);
     cap.set( CV_CAP_PROP_XI_AEAG, 1);
     cap.set( CV_CAP_PROP_XI_ACQ_TIMING_MODE, XI_ACQ_TIMING_MODE_FRAME_RATE);
     cap.set( CV_CAP_PROP_FPS, framerate);
