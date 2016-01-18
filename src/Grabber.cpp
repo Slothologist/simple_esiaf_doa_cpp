@@ -58,7 +58,7 @@ void Grabber::grabImage() {
 
             // Copy
             mtx.lock();
-            if (source_frame.rows > 0 && source_frame.cols > 0 && width != 320 && height != 240) {
+            if (source_frame.rows > 0 && source_frame.cols > 0 && source_frame.rows != width && source_frame.cols != height) {
                  cv::resize(source_frame, output_frame, size);
             } else {
                 output_frame = source_frame;
