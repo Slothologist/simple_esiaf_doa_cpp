@@ -17,26 +17,38 @@
 #include <mutex>
 
 // SELF
-#include "Saliency.h"
-#include "Grabber.h"
-#include "Grabber_XIMEA.h"
 #include "Faces.h"
+#include "Grabber.h"
+#include "Saliency.h"
+#include "Grabber_ROS.h"
+#include "Grabber_XIMEA.h"
 
 
 using namespace std;
 using namespace cv;
 using namespace boost::program_options;
 
-int main (int argc, char * const argv[])
-{
-    // Global toogle/config
+void rosSpin() {
+    ros::Rate r(100);
+    while (cv::waitKey(1) <= 0) {
+        ros::spinOnce();
+        r.sleep();
+    }
+}
+
+int main(int argc, char *const argv[]) {
+
+    // Global config
     string dlib_path = "None";
+    string ros_input_scope = "/usb_cam/image_raw";
     bool faces_flag = false;
     bool viz_flag = false;
     bool saliency_flag = false;
     bool fit_flag = false;
     bool timing_flag = false;
     bool ximea_flag = false;
+    bool native_grabber = true;
+    bool ros_source = false;
     int rate = 30;
 
     // Programm options
@@ -44,73 +56,67 @@ int main (int argc, char * const argv[])
 
         options_description general("general options");
         general.add_options()
-            ("help", "Show this help")
-            ("version", "0.1")
-            ;
+                ("help", "Show this help")
+                ("version", "0.1");
 
         options_description dlib("dlib options");
         dlib.add_options()
-            ("dlib", value<string>(), "the dlib pose model path")
-            ;
+                ("dlib", value<string>(), "the dlib pose model path");
 
         options_description saliency("saliency detection options");
         saliency.add_options()
-            ("saliency", value<string>(), "detect most salient point ON|OFF")
-            ;
+                ("saliency", value<string>(), "detect most salient point ON|OFF");
 
         options_description faces("face detection options");
         faces.add_options()
-            ("faces", value<string>(), "detect faces ON|OFF")
-            ;
+                ("faces", value<string>(), "detect faces ON|OFF");
 
         options_description viz("visualization options");
         viz.add_options()
-            ("viz", value<string>(), "visulatization ON|OFF")
-            ;
+                ("viz", value<string>(), "visulatization ON|OFF");
 
         options_description fit("fitting options");
         fit.add_options()
-            ("fit", value<string>(), "fitting ON|OFF")
-            ;
+                ("fit", value<string>(), "fitting ON|OFF");
 
         options_description timing("timing options");
         timing.add_options()
-            ("timing", value<string>(), "timing ON|OFF")
-            ;
+                ("timing", value<string>(), "timing ON|OFF");
 
         options_description framerate("framerate options");
         framerate.add_options()
-            ("framerate", value<int>()->default_value(30), "framerate <value> (default is 30)")
-            ;
+                ("framerate", value<int>()->default_value(30), "framerate <value> (default is 30)");
 
         options_description ximea("ximea options");
         ximea.add_options()
-            ("ximea", value<string>(), "ximea ON|OFF")
-            ;
+                ("ximea", value<string>(), "ximea ON|OFF");
+
+        options_description rossource("rossource options");
+        ximea.add_options()
+                ("rossource", value<string>(), "rossource=$topic");
 
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(ximea);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(ximea).add(rossource);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(ximea);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(ximea).add(rossource);
 
         variables_map vm;
 
         store(parse_command_line(argc, argv, all), vm);
 
-        if (vm.count("help"))
-        {
+        if (vm.count("help")) {
             cout << visible;
             return 0;
         }
 
         if (vm.count("faces")) {
-            const string& s = vm["faces"].as<string>();
-            if(s=="ON") {
+            const string &s = vm["faces"].as<string>();
+            if (s == "ON") {
                 cout << ">>> Face detection is: " << s << "\n";
                 faces_flag = true;
                 if (vm.count("dlib")) {
-                    const string& s = vm["dlib"].as<string>();
+                    const string &s = vm["dlib"].as<string>();
                     dlib_path = s;
                     cout << ">>> DLIB pose model found!" << "\n";
                 } else {
@@ -128,27 +134,27 @@ int main (int argc, char * const argv[])
         }
 
         if (vm.count("saliency")) {
-            const string& s = vm["saliency"].as<string>();
-            if(s=="ON") {
+            const string &s = vm["saliency"].as<string>();
+            if (s == "ON") {
                 cout << ">>> Saliency detection is: " << s << "\n";
                 saliency_flag = true;
             } else {
-                 cout << ">>> Saliency detection is: " << s << "\n";
-                 saliency_flag = false;
+                cout << ">>> Saliency detection is: " << s << "\n";
+                saliency_flag = false;
             }
-         } else {
+        } else {
             cout << ">>> Saliency detection is: OFF" << "\n";
             saliency_flag = false;
         }
 
         if (vm.count("viz")) {
-            const string& s = vm["viz"].as<string>();
-            if(s=="ON") {
+            const string &s = vm["viz"].as<string>();
+            if (s == "ON") {
                 cout << ">>> Visualization is: " << s << "\n";
                 viz_flag = true;
             } else {
-                 cout << ">>> Visualization is: " << s << "\n";
-                 viz_flag = false;
+                cout << ">>> Visualization is: " << s << "\n";
+                viz_flag = false;
             }
 
         } else {
@@ -157,29 +163,29 @@ int main (int argc, char * const argv[])
         }
 
         if (vm.count("fit")) {
-            const string& s = vm["fit"].as<string>();
-            if(s=="ON") {
+            const string &s = vm["fit"].as<string>();
+            if (s == "ON") {
                 cout << ">>> Fitting is: " << s << "\n";
                 fit_flag = true;
             } else {
-                 cout << ">>> Fitting is: " << s << "\n";
-                 fit_flag = false;
+                cout << ">>> Fitting is: " << s << "\n";
+                fit_flag = false;
             }
-         } else {
+        } else {
             cout << ">>> Fitting is: OFF" << "\n";
             fit_flag = false;
         }
 
         if (vm.count("timing")) {
-            const string& s = vm["timing"].as<string>();
-            if(s=="ON") {
+            const string &s = vm["timing"].as<string>();
+            if (s == "ON") {
                 cout << ">>> Timing is: " << s << "\n";
                 timing_flag = true;
             } else {
-                 cout << ">>> Timing is: " << s << "\n";
-                 timing_flag = false;
+                cout << ">>> Timing is: " << s << "\n";
+                timing_flag = false;
             }
-         } else {
+        } else {
             cout << ">>> Timing is: OFF" << "\n";
             timing_flag = false;
         }
@@ -193,20 +199,33 @@ int main (int argc, char * const argv[])
         }
 
         if (vm.count("ximea")) {
-            const string& s = vm["ximea"].as<string>();
-            if(s=="ON") {
+            const string &s = vm["ximea"].as<string>();
+            if (s == "ON") {
                 cout << ">>> Using XIMEA: " << s << "\n";
                 ximea_flag = true;
+                native_grabber = false;
+                ros_source = false;
             } else {
-                 cout << ">>> Using XIMEA: " << s << "\n";
-                 ximea_flag = false;
+                cout << ">>> Using XIMEA: " << s << "\n";
+                ximea_flag = false;
             }
-         } else {
+        } else {
             cout << ">>> Using XIMEA: OFF" << "\n";
             ximea_flag = false;
         }
 
-    } catch(std::exception& e) { cout << e.what() << "\n"; }
+        if (vm.count("rossource")) {
+            const string &s = vm["rossource"].as<string>();
+            ros_input_scope = s;
+            ximea_flag = false;
+            native_grabber = false;
+            ros_source = true;
+        } else {
+            cout << ">>> ROSSOURCE: OFF" << "\n";
+            ros_source = false;
+        }
+
+    } catch (std::exception &e) { cout << e.what() << "\n"; }
 
     // ROS
     ros::init(argc, (char **) argv, "robotgazetools");
@@ -214,42 +233,77 @@ int main (int argc, char * const argv[])
     // Workaround for 2 Threads using imshow()
     namedWindow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit");
 
-    // Grabber Thread
-    Grabber_XIMEA grabber_x;
-    // Grabber grabber;
 
+    if (ximea_flag) {
 
-    /*if(ximea_flag) {
-        grabber_x.setCapture(argc, (const char**) argv, rate);
-        thread g_t(&Grabber_XIMEA::grabImage, &grabber_x);
-    } else {
-        cout << "XIMEA ONLY FOR NOW" << endl;
-        exit(1);
-        //grabber.setCapture(argc, (const char**) argv, rate);
-        //thread g_t(&Grabber::grabImage, &grabber);
-    }*/
+        // XIMEA Grabber
+        Grabber_XIMEA grabber;
+        grabber.setCapture(argc, (const char **) argv, rate, timing_flag);
+        thread g_t(&Grabber_XIMEA::grabImage, &grabber);
 
-    grabber_x.setCapture(argc, (const char**) argv, rate);
-    thread g_t(&Grabber_XIMEA::grabImage, &grabber_x);
+        // DLIB
+        Faces fac;
+        if (faces_flag) {
+            fac.setPathXimea(&grabber, dlib_path, viz_flag, fit_flag);
+        }
+        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
 
-    // DLIB
-    Faces fac;
-    if(faces_flag) {
-        fac.setPath(&grabber_x, dlib_path, viz_flag, fit_flag);
+        // NMPT
+        Saliency sal;
+        if (saliency_flag) {
+            sal.setupXimea(&grabber, grabber.getCamera(), viz_flag);
+        }
+        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
+        cout << ">>> GRABBER RUNNING in XIMEA MODE" << "\n";
+        rosSpin();
     }
-    thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
 
-    // NMPT
-    Saliency sal;
-    if(saliency_flag){
-        sal.setup(&grabber_x, grabber_x.getCamera(), viz_flag);
+    if (ros_source) {
+
+        // ROS Grabber
+        Grabber_ROS grabber(timing_flag);
+
+        // DLIB
+
+        Faces fac;
+        if (faces_flag) {
+            fac.setPathROS(&grabber, dlib_path, viz_flag, fit_flag);
+        }
+        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
+
+        // NMPT
+        Saliency sal;
+        if (saliency_flag) {
+            sal.setupROS(&grabber, grabber.getCamera(), viz_flag);
+        }
+        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
+        cout << ">>> GRABBER RUNNING in ROS MODE" << "\n";
+        rosSpin();
     }
-    thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 
-    ros::Rate r(100);
+    if (native_grabber) {
 
-    while(cv::waitKey(1) <= 0) {
-        ros::spinOnce();
-        r.sleep();
+        // STD Device Grabber
+        Grabber grabber;
+        grabber.setCapture(argc, (const char **) argv, rate, timing_flag);
+        thread g_t(&Grabber::grabImage, &grabber);
+
+        // DLIB
+        Faces fac;
+        if (faces_flag) {
+        fac.setPath(&grabber, dlib_path, viz_flag, fit_flag);
+        }
+        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
+
+        // NMPT
+        Saliency sal;
+        if (saliency_flag) {
+        sal.setup(&grabber, grabber.getCamera(), viz_flag);
+        }
+        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
+        cout << ">>> GRABBER RUNNING in NATIVE MODE" << "\n";
+        rosSpin();
+
     }
+
 }
