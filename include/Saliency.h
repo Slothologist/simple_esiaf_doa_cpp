@@ -1,8 +1,10 @@
 #pragma once
 
+// SELF
 #include "Grabber.h"
-#include "Grabber_XIMEA.h"
 #include "Grabber_ROS.h"
+
+// NMPT
 #include <nmpt/BlockTimer.h>
 #include <nmpt/FastSalience.h>
 #include <nmpt/LQRPointTracker.h>
@@ -13,7 +15,7 @@ public:
     ~Saliency();
     void getSaliency(bool saliency_flag, bool timing);
     void setup(Grabber *grab, int camera, bool _vis);
-    void setupXimea(Grabber_XIMEA *grab, int camera, bool _vis);
+    // void setupXimea(Grabber_XIMEA *grab, int camera, bool _vis);
     void setupROS(Grabber_ROS *grab, int camera, bool _vis);
 protected:
     // NMPT
@@ -25,7 +27,7 @@ protected:
     ros::Publisher pub_s;
     // SELF
     bool vizu, is_ximea, is_ros, is_native;
-    Grabber_XIMEA *grabber_x;
+    // Grabber_XIMEA *grabber_x;
     Grabber *grabber;
     Grabber_ROS *grabber_ros;
     /**

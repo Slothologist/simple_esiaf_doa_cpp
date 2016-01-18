@@ -1,8 +1,17 @@
 #pragma once
 
+// STD
+#include <iostream>
+#include <sstream>
+#include <string>
+
+// SELF
 #include "Grabber.h"
-#include "Grabber_XIMEA.h"
+
+// ROS
 #include "Grabber_ROS.h"
+
+// DLIB
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/shape_predictor.h>
 #include <dlib/gui_widgets.h>
@@ -12,7 +21,7 @@ public:
     Faces();
     ~Faces();
     void getFaces(bool faces_flag, bool timing);
-    void setPathXimea(Grabber_XIMEA *grab, std::string path, bool _vis, bool _fit);
+    // void setPathXimea(Grabber_XIMEA *grab, std::string path, bool _vis, bool _fit);
     void setPath(Grabber *grab, std::string path, bool _vis, bool _fit);
     void setPathROS(Grabber_ROS *grab, std::string path, bool _vis, bool _fit);
 protected:
@@ -24,7 +33,7 @@ protected:
     ros::NodeHandle n;
     ros::Publisher pub_f;
     // SELF
-    Grabber_XIMEA *grabber_x;
+    // Grabber_XIMEA *grabber_x;
     Grabber *grabber;
     Grabber_ROS *grabber_ros;
     bool viz, fit, is_ximea, is_ros, is_native;

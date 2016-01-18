@@ -12,11 +12,13 @@ using namespace std;
 Grabber_XIMEA::Grabber_XIMEA() { }
 Grabber_XIMEA::~Grabber_XIMEA() { }
 
-void Grabber_XIMEA::setCapture(int _argc, const char *_argv[], int framerate, bool timing_flag) {
+void Grabber_XIMEA::setCapture(int _argc, const char *_argv[], int framerate, bool timing_flag, int i_width, int i_height) {
 
     printf("OPENCV VERSION: %d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION);
     printf("XIAPI %d\n", CV_CAP_XIAPI);
 
+    height = i_height;
+    width = i_width;
     timing = timing_flag;
     VideoCapture capture(CV_CAP_XIAPI);
     cap = capture;
@@ -34,7 +36,7 @@ void Grabber_XIMEA::setCapture(int _argc, const char *_argv[], int framerate, bo
     unsigned int source_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 
     if (!cap.isOpened()) {
-        cerr << ">>> ERROR: capture is NULL, no ximea cam found. Is Opencv built with ximea api??\n";
+        cerr << ">>> ERROR: capture is NULL, no ximea cam found. Is OpenCV built with ximea api??\n";
         exit(EXIT_FAILURE);
     }
 
@@ -65,7 +67,7 @@ int Grabber_XIMEA::getCamera() {
 
 void Grabber_XIMEA::grabImage() {
 
-    cv::Size imSize(320, 240);
+    cv::Size imSize(width, height);
 
     while (1) {
 
@@ -81,11 +83,6 @@ void Grabber_XIMEA::grabImage() {
                 continue;
             }
 
-            boost::posix_time::ptime c3 = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration cdiff3 = c3 - re;
-            // cout << "[RETR] Time Consumption: " << cdiff3.total_milliseconds() << " ms" << std::endl;
-
-
             boost::posix_time::ptime r = boost::posix_time::microsec_clock::local_time();
 
             // Crop
@@ -94,10 +91,6 @@ void Grabber_XIMEA::grabImage() {
             // Resize
             Mat resized;
             resize(cropped, resized_frame, imSize, INTER_NEAREST);
-
-            boost::posix_time::ptime c2 = boost::posix_time::microsec_clock::local_time();
-            boost::posix_time::time_duration cdiff2 = c2 - r;
-            // cout << "[RESIZE +CROP] Time Consumption: " << cdiff2.total_milliseconds() << " ms" << std::endl;
 
             // Copy
             mtx.lock();
@@ -109,15 +102,14 @@ void Grabber_XIMEA::grabImage() {
         if(timing) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
             boost::posix_time::time_duration cdiff = c - init;
-            cout << "[GRABBING] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
+            cout << "[XIMEA GRABBING] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
         }
     }
 }
 
 void Grabber_XIMEA::getImage(ros::Time *target_timestamp, cv::Mat *mat) {
     mtx.lock();
-    cv::Mat frame_copy = output_frame.clone();
-    *mat = frame_copy;
+    *mat = output_frame;
     if (target_timestamp != NULL) {
         *target_timestamp = timestamp;
     }

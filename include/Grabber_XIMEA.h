@@ -11,10 +11,10 @@ public:
     ~Grabber_XIMEA();
     void grabImage();
     int getCamera();
-    void setCapture(int _argc, const char *_argv[], int framerate, bool timing_flag);
+    void setCapture(int _argc, const char *_argv[], int framerate, bool timing_flag, int width, int height);
     void getImage(ros::Time *timestamp, cv::Mat *mat);
 protected:
-    int usingCamera;
+    int usingCamera, width, height;
     bool timing;
     ros::Time timestamp;
     cv::VideoCapture cap;

@@ -17,8 +17,9 @@ Saliency::Saliency() {
     pub_s = n.advertise<geometry_msgs::PointStamped>("robotgazetools/saliency", 10);
 }
 
-Saliency::~Saliency() { }
+Saliency::~Saliency() {}
 
+/*
 void Saliency::setupXimea(Grabber_XIMEA *grab, int camera, bool _vis) {
     grabber_x = grab;
     usingCamera = camera;
@@ -30,6 +31,7 @@ void Saliency::setupXimea(Grabber_XIMEA *grab, int camera, bool _vis) {
     is_native = false;
     is_ros = false;
 }
+*/
 
 void Saliency::setupROS(Grabber_ROS *grab, int camera, bool _vis) {
     grabber_ros = grab;
@@ -60,7 +62,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
     ros::Time start = ros::Time::now();
     ros::Time last_frame_timestamp = ros::Time::now();
 
-    while (cv::waitKey(1) <= 0) {
+    while(true) {
 
         if (!saliency_flag) {
             usleep(5000);
@@ -72,22 +74,21 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
         ros::Time frame_timestamp;
         cv::Mat im;
 
-        if (is_ximea) {
-            grabber_x->getImage(&frame_timestamp, &im);
-        }
+        // if (is_ximea) {
+        //     grabber_x->getImage(&frame_timestamp, &im);
+        // }
 
         if (is_native) {
             grabber->getImage(&frame_timestamp, &im);
         }
 
         if (is_ros) {
-            cout << "grabbing" << endl;
             grabber_ros->getImage(&frame_timestamp, &im);
         }
 
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
-            cout << "Saliency: waiting for next image to be grabbed..." << endl;
+            cout << "[Saliency] waiting for next image to be grabbed..." << endl;
             usleep(1000);
             continue;
         }
@@ -97,6 +98,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
         h.frame_id = "0";
 
         if (h.stamp <= start || last_frame_timestamp == frame_timestamp) {
+            cout << "[Saliency] no new frame, continue..." << endl;
             usleep(1000);
             continue;
         }
@@ -105,7 +107,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
 
         double saltime, tottime;
 
-        // Time me
+        // Time it!
         bt.blockRestart(0);
 
         viz.create(im.rows, im.cols * 2, CV_32FC3);
@@ -168,6 +170,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
 
         if (vizu) {
             imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
+            cv::waitKey(1);
         }
 
         if (timing) {

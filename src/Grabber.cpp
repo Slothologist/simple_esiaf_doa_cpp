@@ -11,18 +11,18 @@ using namespace std;
 Grabber::Grabber() { }
 Grabber::~Grabber() { }
 
-void Grabber::setCapture(int _argc, const char *_argv[], int framerate, bool timing_flag) {
+void Grabber::setCapture(int _argc, const char *_argv[], int framerate, bool timing_flag, int i_width, int i_height) {
 
     printf("OPENCV VERSION: %d.%d\n", CV_MAJOR_VERSION, CV_MINOR_VERSION);
 
     timing = timing_flag;
-
-    cv::Size imSize(320, 240);
+    height = i_height;
+    width = i_width;
     VideoCapture capture;
     cap = capture;
 
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, 320);
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, width);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, height);
     cap.set(CV_CAP_PROP_FPS, framerate);
 
     usingCamera = NMPTUtils::getVideoCaptureFromCommandLineArgs(cap, _argc, _argv);
@@ -54,9 +54,15 @@ void Grabber::grabImage() {
                 continue;
             }
 
+            cv::Size size(width,height);
+
             // Copy
             mtx.lock();
-            output_frame = source_frame.clone();
+            if (source_frame.rows > 0 && source_frame.cols > 0 && width != 320 && height != 240) {
+                 cv::resize(source_frame, output_frame, size);
+            } else {
+                output_frame = source_frame;
+            }
             timestamp = frame_time;
             mtx.unlock();
         }
@@ -71,8 +77,7 @@ void Grabber::grabImage() {
 
 void Grabber::getImage(ros::Time *target_timestamp, cv::Mat *mat) {
     mtx.lock();
-    cv::Mat frame_copy = output_frame.clone();
-    *mat = frame_copy;
+    *mat = output_frame;
     if (target_timestamp != NULL) {
         *target_timestamp = timestamp;
     }

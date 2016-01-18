@@ -1,13 +1,16 @@
 #include <ros/ros.h>
 #include "Grabber_ROS.h"
+#include <iostream>
+#include <sstream>
+#include <string>
 #include "boost/date_time/posix_time/posix_time.hpp"
 
-Grabber_ROS::Grabber_ROS(bool timing_flag) : it_(node_handle_) {
-    image_sub_ = it_.subscribe("/usb_cam/image_raw", 1, &Grabber_ROS::imageCallback, this);
+Grabber_ROS::Grabber_ROS(bool timing_flag, int i_width, int i_height, std::string scope) : it_(node_handle_) {
     usingCamera = 1;
     timing = timing_flag;
-    // View Input Image (optional)
-    cv::namedWindow("ROS INPUT STREAM");
+    width = i_width;
+    height = i_height;
+    image_sub_ = it_.subscribe(scope, 100, &Grabber_ROS::imageCallback, this);
 }
 
 Grabber_ROS::~Grabber_ROS() { }
@@ -26,17 +29,20 @@ void Grabber_ROS::imageCallback(const sensor_msgs::ImageConstPtr &msg) {
         return;
     }
 
-    ros::Time frame_time = ros::Time::now();
+    cv::Size size(width, height);
 
     // Copy
-    mtx.lock();
-    output_frame = cv_ptr->image.clone();
-    timestamp = frame_time;
-    mtx.unlock();
 
-    // View Input Image (optional)
-    cv::imshow("ROS INPUT", cv_ptr->image);
-    cv::waitKey(1);
+    ros::Time frame_time = ros::Time::now();
+    timestamp = frame_time;
+    mtx.lock();
+    source_frame = cv_ptr->image;
+    if (source_frame.rows > 0 && source_frame.cols > 0 && width != 320 && height != 240) {
+         cv::resize(source_frame, output_frame, size);
+    } else {
+        output_frame = source_frame;
+    }
+    mtx.unlock();
 
     if(timing) {
         boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();
@@ -52,8 +58,7 @@ int Grabber_ROS::getCamera() {
 
 void Grabber_ROS::getImage(ros::Time *target_timestamp, cv::Mat *mat) {
     mtx.lock();
-    cv::Mat frame_copy = output_frame.clone();
-    *mat = frame_copy;
+    *mat = output_frame;
     if (target_timestamp != NULL) {
         *target_timestamp = timestamp;
     }

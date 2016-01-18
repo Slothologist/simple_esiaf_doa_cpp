@@ -25,6 +25,7 @@ Faces::Faces() {
 
 Faces::~Faces() { }
 
+/*
 void Faces::setPathXimea(Grabber_XIMEA *grab, string path, bool _vis, bool _fit) {
     grabber_x = grab;
     viz = _vis;
@@ -44,6 +45,7 @@ void Faces::setPathXimea(Grabber_XIMEA *grab, string path, bool _vis, bool _fit)
         exit(1);
     }
 }
+*/
 
 void Faces::setPath(Grabber *grab, string path, bool _vis, bool _fit) {
     grabber = grab;
@@ -92,7 +94,7 @@ void Faces::getFaces(bool faces_flag, bool timing) {
     ros::Time start = ros::Time::now();
     ros::Time last_frame_timestamp = ros::Time::now();
 
-    while (1) {
+    while (true) {
 
         if (!faces_flag) {
             usleep(5000);
@@ -104,9 +106,9 @@ void Faces::getFaces(bool faces_flag, bool timing) {
         ros::Time frame_timestamp;
         cv::Mat im;
 
-        if (is_ximea) {
-            grabber_x->getImage(&frame_timestamp, &im);
-        }
+        // if (is_ximea) {
+        //     grabber_x->getImage(&frame_timestamp, &im);
+        // }
 
         if (is_ros) {
             grabber_ros->getImage(&frame_timestamp, &im);
@@ -118,7 +120,7 @@ void Faces::getFaces(bool faces_flag, bool timing) {
 
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
-            cout << "Faces: waiting for next image to be grabbed..." << endl;
+            cout << "[Faces] waiting for next image to be grabbed..." << endl;
             usleep(1000);
             continue;
         }
@@ -128,6 +130,7 @@ void Faces::getFaces(bool faces_flag, bool timing) {
         h.frame_id = "0";
 
         if (h.stamp <= start || last_frame_timestamp == frame_timestamp) {
+            cout << "[Faces] no new frame, continue..." << endl;
             usleep(1000);
             continue;
         }
@@ -139,9 +142,6 @@ void Faces::getFaces(bool faces_flag, bool timing) {
         people_msgs::Person person_msg;
 
         dlib::cv_image<dlib::bgr_pixel> cimg(im);
-
-        // UPSCALE IMAGE
-        // dlib::pyramid_up(cimg);
 
         // Detect faces
         std::vector<dlib::rectangle> faces = detector(cimg);

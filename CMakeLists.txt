@@ -29,12 +29,12 @@ ENDIF()
 
 PKG_CHECK_MODULES(YAMLCPP REQUIRED yaml-cpp>=0.5)
 
-PKG_CHECK_MODULES(XIMEA REQUIRED xiapi>=4.3.6)
-IF (XIMEA_FOUND)
-  MESSAGE("-- using ximea xiAPI version ${XIMEA_VERSION} from ${XIMEA_PREFIX}")
-ELSE (XIMEA_FOUND)
-  message(FATAL_ERROR "ERROR: Cannot find ximea api")
-ENDIF (XIMEA_FOUND)
+# PKG_CHECK_MODULES(XIMEA REQUIRED xiapi>=4.3.6)
+# IF (XIMEA_FOUND)
+#   MESSAGE("-- using ximea xiAPI version ${XIMEA_VERSION} from ${XIMEA_PREFIX}")
+# ELSE (XIMEA_FOUND)
+#   message(FATAL_ERROR "ERROR: Cannot find ximea api")
+# ENDIF (XIMEA_FOUND)
 
 SET(ROS_BUILD_TYPE Debug)
 SET(CMAKE_BUILD_TYPE DEBUG)
@@ -104,7 +104,8 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(BEFORE include ${Boost_INCLUDE_DIRS})
-include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${XIMEA_INCLUDE_DIRS})
+#include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${XIMEA_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
 link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${dlib_LIBRARIES} ${OpenCV_LIBRARIES})
 
@@ -118,7 +119,7 @@ add_executable(simple_robot_gaze_tools
         src/Faces.cpp
         src/Saliency.cpp
         src/Grabber.cpp
-        src/Grabber_XIMEA.cpp
+        # src/Grabber_XIMEA.cpp
         src/Grabber_ROS.cpp
         ${DUMMY_HEADER_LIST}
 )
