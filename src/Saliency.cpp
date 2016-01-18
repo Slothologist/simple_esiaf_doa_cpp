@@ -61,6 +61,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
 
     ros::Time start = ros::Time::now();
     ros::Time last_frame_timestamp = ros::Time::now();
+    Mat vizRect;
 
     while(true) {
 
@@ -98,7 +99,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
         h.frame_id = "0";
 
         if (h.stamp <= start || last_frame_timestamp == frame_timestamp) {
-            cout << "[Saliency] no new frame, continue..." << endl;
+            // cout << "[Saliency] no new frame, continue..." << endl;
             usleep(1000);
             continue;
         }
@@ -114,12 +115,15 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
 
         vector<KeyPoint> pts;
         salTracker.detect(im, pts);
+
         saltime = bt.getCurrTime(0);
 
         salTracker.getSalImage(sal);
 
         double min, max;
+
         Point minloc, maxloc;
+
         minMaxLoc(sal, &min, &max, &minloc, &maxloc);
 
         lqrpt[0] = maxloc.x * 1.0 / sal.cols;
@@ -127,7 +131,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
 
         salientSpot.setTrackerTarget(lqrpt);
 
-        Mat vizRect = viz(Rect(im.cols, 0, im.cols, im.rows));
+        vizRect = viz(Rect(im.cols, 0, im.cols, im.rows));
         cvtColor(sal, vizRect, CV_GRAY2BGR);
 
         vizRect = viz(Rect(0, 0, im.cols, im.rows));

@@ -130,7 +130,7 @@ void Faces::getFaces(bool faces_flag, bool timing) {
         h.frame_id = "0";
 
         if (h.stamp <= start || last_frame_timestamp == frame_timestamp) {
-            cout << "[Faces] no new frame, continue..." << endl;
+            // cout << "[Faces] no new frame, continue..." << endl;
             usleep(1000);
             continue;
         }
