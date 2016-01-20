@@ -1,16 +1,24 @@
+// ROS
 #include <ros/ros.h>
+
+// SELF
 #include "Grabber_ROS.h"
+
+// STD
 #include <iostream>
 #include <sstream>
 #include <string>
+
+// BOOST
 #include "boost/date_time/posix_time/posix_time.hpp"
+
 
 Grabber_ROS::Grabber_ROS(bool timing_flag, int i_width, int i_height, std::string scope) : it_(node_handle_) {
     usingCamera = 1;
     timing = timing_flag;
     width = i_width;
     height = i_height;
-    image_sub_ = it_.subscribe(scope, 100, &Grabber_ROS::imageCallback, this);
+    image_sub_ = it_.subscribe(scope, 1, &Grabber_ROS::imageCallback, this);
 }
 
 Grabber_ROS::~Grabber_ROS() { }

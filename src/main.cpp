@@ -21,6 +21,7 @@
 #include "Grabber.h"
 #include "Saliency.h"
 #include "Grabber_ROS.h"
+#include "Grabber_RSB.h"
 // #include "Grabber_XIMEA.h"
 
 
@@ -33,6 +34,8 @@ int main(int argc, char *const argv[]) {
     // Global config
     string dlib_path = "None";
     string ros_input_scope = "/usb_cam/image_raw";
+    string rsb_input_scope = "/usb_cam/image_raw";
+    string ros_topic = "robotgazetools";
     bool faces_flag = false;
     bool viz_flag = false;
     bool saliency_flag = false;
@@ -40,6 +43,7 @@ int main(int argc, char *const argv[]) {
     bool timing_flag = false;
     bool native_grabber = true;
     bool ros_source = false;
+    bool rsb_source = false;
     int rate = 30;
     int width = 320;
     int height = 240;
@@ -88,6 +92,14 @@ int main(int argc, char *const argv[]) {
         rossource.add_options()
                 ("rossource", value<string>(), "rossource=$topic");
 
+        options_description rsbsource("rsbsource options");
+        rsbsource.add_options()
+                ("rsbsource", value<string>(), "rsbsource=$topic");
+
+        options_description rostopic("rostopic options");
+        rostopic.add_options()
+                ("rostopic", value<string>(), "rostopic=$topic");
+
         options_description iwidth("width options");
         iwidth.add_options()
                 ("width", value<int>(), "width=NUMBER (default is 240 pixel)");
@@ -97,10 +109,10 @@ int main(int argc, char *const argv[]) {
                 ("height", value<int>(), "height=NUMBER (default is 320 pixel)");
 
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(rossource).add(iwidth).add(iheight);
+        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(rossource).add(rostopic).add(rsbsource).add(iwidth).add(iheight);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(rossource).add(iwidth).add(iheight);
+        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(rostopic).add(rossource).add(rsbsource).add(iwidth).add(iheight);
 
         variables_map vm;
 
@@ -205,8 +217,30 @@ int main(int argc, char *const argv[]) {
             // ximea_flag = false;
             native_grabber = false;
             ros_source = true;
+            cout << ">>> ROSSOURCE is:" << s << "\n";
         } else {
             cout << ">>> ROSSOURCE: OFF" << "\n";
+            ros_source = false;
+        }
+
+        if (vm.count("rostopic")) {
+            const string &s = vm["rostopic"].as<string>();
+            ros_topic = s;
+            cout << ">>> ROSTOPIC is:" << s << "\n";
+        } else {
+            cout << ">>> ROSTOPIC is:" << ros_topic <<"\n";
+        }
+
+        if (vm.count("rsbsource")) {
+            const string &s = vm["rsbsource"].as<string>();
+            rsb_input_scope = s;
+            // ximea_flag = false;
+            native_grabber = false;
+            ros_source = false;
+            rsb_source = true;
+            cout << ">>> RSBSOURCE is:" << s << "\n";
+        } else {
+            cout << ">>> RSBSOURCE: OFF" << "\n";
             ros_source = false;
         }
 
@@ -281,20 +315,44 @@ int main(int argc, char *const argv[]) {
         Grabber_ROS grabber(timing_flag, width, height, ros_input_scope);
 
         // DLIB
-        Faces fac;
+        Faces fac(ros_topic);
         if (faces_flag) {
             fac.setPathROS(&grabber, dlib_path, viz_flag, fit_flag);
         }
         thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
 
         // NMPT
-        Saliency sal;
+        Saliency sal(ros_topic);
         if (saliency_flag) {
             sal.setupROS(&grabber, grabber.getCamera(), viz_flag);
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 
         cout << ">>> GRABBER RUNNING in ROS MODE" << "\n";
+        ros::spin();
+    }
+
+    if (rsb_source) {
+
+        // ROS Grabber
+        Grabber_RSB grabber(timing_flag, width, height, ros_input_scope, "apw", "5556");
+
+        // DLIB
+        Faces fac(ros_topic);
+        if (faces_flag) {
+            fac.setPathRSB(&grabber, dlib_path, viz_flag, fit_flag);
+        }
+        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
+
+        // NMPT
+        Saliency sal(ros_topic);
+        if (saliency_flag) {
+            unsigned int c = 1;
+            sal.setupRSB(&grabber, c, viz_flag);
+        }
+        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
+
+        cout << ">>> GRABBER RUNNING in RSB MODE" << "\n";
         ros::spin();
     }
 
@@ -306,16 +364,16 @@ int main(int argc, char *const argv[]) {
         thread g_t(&Grabber::grabImage, &grabber);
 
         // DLIB
-        Faces fac;
+        Faces fac(ros_topic);
         if (faces_flag) {
-        fac.setPath(&grabber, dlib_path, viz_flag, fit_flag);
+            fac.setPath(&grabber, dlib_path, viz_flag, fit_flag);
         }
         thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
 
         // NMPT
-        Saliency sal;
+        Saliency sal(ros_topic);
         if (saliency_flag) {
-        sal.setup(&grabber, grabber.getCamera(), viz_flag);
+            sal.setup(&grabber, grabber.getCamera(), viz_flag);
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
 

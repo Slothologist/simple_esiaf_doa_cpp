@@ -7,7 +7,12 @@ FIND_PACKAGE(catkin COMPONENTS roscpp std_msgs sensor_msgs image_transport cv_br
 FIND_PACKAGE(dlib REQUIRED)
 FIND_PACKAGE(nmpt 0.7 REQUIRED)
 FIND_PACKAGE(Boost REQUIRED COMPONENTS system program_options)
+FIND_PACKAGE(RSC 0.12 REQUIRED)
+FIND_PACKAGE(RSB 0.12 REQUIRED)
+FIND_PACKAGE(RST 0.12 REQUIRED sandbox)
+FIND_PACKAGE(rst-converters 0.12 REQUIRED)
 
+ADD_DEFINITIONS(${RST_CFLAGS} ${RSTSANDBOX_CFLAGS})
 
 SET(OpenCV_MIN_VERSION "2.4.10")
 FIND_PATH(OpenCV_DIR NAMES opencv-config.cmake OpenCVConfig.cmake PATH_SUFFIXES lib/cmake lib)
@@ -36,8 +41,8 @@ PKG_CHECK_MODULES(YAMLCPP REQUIRED yaml-cpp>=0.5)
 #   message(FATAL_ERROR "ERROR: Cannot find ximea api")
 # ENDIF (XIMEA_FOUND)
 
-SET(ROS_BUILD_TYPE Debug)
-SET(CMAKE_BUILD_TYPE DEBUG)
+SET(ROS_BUILD_TYPE Release)
+SET(CMAKE_BUILD_TYPE Release)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -101,13 +106,10 @@ catkin_package(
 ## Build ##
 ###########
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-include_directories(BEFORE include ${Boost_INCLUDE_DIRS})
-#include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${XIMEA_INCLUDE_DIRS})
+include_directories(BEFORE include ${Boost_INCLUDE_DIRS} ${RSB_INCLUDE_DIRS} ${RSC_INCLUDE_DIRS} ${RST_INCLUDE_DIRS} ${RST_CONVERTERS_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${NMPT_INCLUDE_DIRS} ${dlib_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 
-link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS} ${dlib_LIBRARIES} ${OpenCV_LIBRARIES})
+link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${NMPT_LIBRARY_DIRS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
@@ -119,18 +121,21 @@ add_executable(simple_robot_gaze_tools
         src/Faces.cpp
         src/Saliency.cpp
         src/Grabber.cpp
+        src/Grabber_RSB.cpp
         # src/Grabber_XIMEA.cpp
         src/Grabber_ROS.cpp
         ${DUMMY_HEADER_LIST}
 )
 
 target_link_libraries(simple_robot_gaze_tools
-                        ${Boost_LIBRARIES}
-                        ${catkin_LIBRARIES}
-                        ${YAMLCPP_LIBRARIES}
-                        ${NMPT_LIBRARIES}
-                        ${dlib_LIBRARIES}
-                        ${OpenCV_LIBRARIES}
+        ${Boost_LIBRARIES}
+        ${catkin_LIBRARIES}
+        ${YAMLCPP_LIBRARIES}
+        ${NMPT_LIBRARIES}
+        ${dlib_LIBRARIES}
+        ${OpenCV_LIBRARIES}
+        ${RSB_LIBRARIES}
+        ${RST_CONVERTERS_LIBRARIES}
 )
 
 set_property(TARGET simple_robot_gaze_tools PROPERTY INSTALL_RPATH_USE_LINK_PATH TRUE)

@@ -19,8 +19,8 @@
 
 using namespace std;
 
-Faces::Faces() {
-    this->pub_f = n.advertise<people_msgs::People>("robotgazetools/faces", 10);
+Faces::Faces(std::string topic) {
+    this->pub_f = n.advertise<people_msgs::People>(topic+"/faces", 10);
 }
 
 Faces::~Faces() { }
@@ -85,7 +85,27 @@ void Faces::setPathROS(Grabber_ROS *grab, string path, bool _vis, bool _fit) {
         cout << endl << e.what() << endl;
         exit(1);
     }
+}
 
+void Faces::setPathRSB(Grabber_RSB *grab, string path, bool _vis, bool _fit) {
+    grabber_rsb = grab;
+    viz = _vis;
+    fit = _fit;
+    is_ximea = false;
+    is_ros = true;
+    is_native = false;
+    is_rsb = true;
+    detector = dlib::get_frontal_face_detector();
+
+    try {
+        dlib::deserialize(path) >> pose_model;
+    } catch (dlib::serialization_error &e) {
+        cout << "You need dlib's default face landmarking model file to run this example." << endl;
+        cout << "You can get it from the following URL: " << endl;
+        cout << "http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
+        cout << endl << e.what() << endl;
+        exit(1);
+    }
 }
 
 
@@ -116,6 +136,10 @@ void Faces::getFaces(bool faces_flag, bool timing) {
 
         if (is_native) {
             grabber->getImage(&frame_timestamp, &im);
+        }
+
+        if (is_rsb) {
+            grabber_rsb->getImage(&frame_timestamp, &im);
         }
 
         // If no image has been grabbed yet...wait.

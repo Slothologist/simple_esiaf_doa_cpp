@@ -3,6 +3,7 @@
 // SELF
 #include "Grabber.h"
 #include "Grabber_ROS.h"
+#include "Grabber_RSB.h"
 
 // NMPT
 #include <nmpt/BlockTimer.h>
@@ -11,25 +12,31 @@
 
 class Saliency {
 public:
-    Saliency();
+    Saliency(std::string topic);
     ~Saliency();
     void getSaliency(bool saliency_flag, bool timing);
     void setup(Grabber *grab, int camera, bool _vis);
-    // void setupXimea(Grabber_XIMEA *grab, int camera, bool _vis);
     void setupROS(Grabber_ROS *grab, int camera, bool _vis);
+    void setupRSB(Grabber_RSB *grab, int camera, bool _vis);
+    // void setupXimea(Grabber_XIMEA *grab, int camera, bool _vis);
 protected:
+
     // NMPT
     BlockTimer bt;
     cv::Mat viz, sal;
     int usingCamera;
+
     // ROS
     ros::NodeHandle n;
     ros::Publisher pub_s;
+
     // SELF
-    bool vizu, is_ximea, is_ros, is_native;
-    // Grabber_XIMEA *grabber_x;
+    bool vizu, is_ximea, is_ros, is_native, is_rsb;
     Grabber *grabber;
     Grabber_ROS *grabber_ros;
+    Grabber_RSB *grabber_rsb;
+    // Grabber_XIMEA *grabber_x;
+
     /**
      * @param numtemporal Number of timescales of Difference of Expontential filters to track.
      * @param numspatial Number of sizes of Difference of Box filters to use.

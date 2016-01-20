@@ -13,8 +13,8 @@
 using namespace std;
 using namespace cv;
 
-Saliency::Saliency() {
-    pub_s = n.advertise<geometry_msgs::PointStamped>("robotgazetools/saliency", 10);
+Saliency::Saliency(std::string topic) {
+    pub_s = n.advertise<geometry_msgs::PointStamped>(topic+"/saliency", 10);
 }
 
 Saliency::~Saliency() {}
@@ -44,6 +44,20 @@ void Saliency::setupROS(Grabber_ROS *grab, int camera, bool _vis) {
     is_native = false;
     is_ros = true;
 }
+
+void Saliency::setupRSB(Grabber_RSB *grab, int camera, bool _vis) {
+    grabber_rsb = grab;
+    usingCamera = camera;
+    bt.blockRestart(1);
+    salientSpot.setTrackerTarget(lqrpt);
+    salTracker.setUseDoEFeatures(1);
+    vizu = _vis;
+    is_ximea = false;
+    is_native = false;
+    is_ros = false;
+    is_rsb = true;
+}
+
 
 void Saliency::setup(Grabber *grab, int camera, bool _vis) {
     grabber = grab;
@@ -85,6 +99,10 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
 
         if (is_ros) {
             grabber_ros->getImage(&frame_timestamp, &im);
+        }
+
+        if (is_rsb) {
+            grabber_rsb->getImage(&frame_timestamp, &im);
         }
 
         // If no image has been grabbed yet...wait.
