@@ -62,7 +62,7 @@ Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _sco
         rsb::converter::Converter<std::string>::Ptr image_c(new rst::converters::opencv::IplImageConverter());
         rsb::converter::converterRepository<string>()->registerConverter(image_c);
     } catch(...) {
-        cout << "RSB IS WEIRD" << endl;
+        cout << ">> RSB IS WEIRD (converter already registered)" << endl;
     }
 
     rsb::ParticipantConfig listenerConfig = factory.getDefaultParticipantConfig();
