@@ -56,10 +56,14 @@ Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _sco
     imageQueue = ImageQueuePtr(new ImageQueue(1));
     imageHandler = ImageHandlerPtr(new ImageHandler(imageQueue));
 
-    rsb::converter::Converter<std::string>::Ptr image_c(new rst::converters::opencv::IplImageConverter());
-    rsb::converter::converterRepository<string>()->registerConverter(image_c);
-
     rsb::Factory &factory = rsb::getFactory();
+
+    try {
+        rsb::converter::Converter<std::string>::Ptr image_c(new rst::converters::opencv::IplImageConverter());
+        rsb::converter::converterRepository<string>()->registerConverter(image_c);
+    } catch(...) {
+        cout << "RSB IS WEIRD" << endl;
+    }
 
     rsb::ParticipantConfig listenerConfig = factory.getDefaultParticipantConfig();
 
