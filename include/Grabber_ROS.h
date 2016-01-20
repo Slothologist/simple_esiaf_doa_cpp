@@ -25,7 +25,7 @@ public:
     void getImage(ros::Time *timestamp, cv::Mat *mat);
     int  getCamera();
     bool timing;
-protected:
+private:
     ros::NodeHandle node_handle_;
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;

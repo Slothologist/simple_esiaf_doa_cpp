@@ -32,10 +32,9 @@
 class Grabber_RSB {
 
 public:
-    Grabber_RSB(bool timing, int width, int height, std::string scope, std::string host, bool socket_input);
+    Grabber_RSB(bool timing, int width, int height, std::string scope, std::string host, std::string port);
     ~Grabber_RSB();
     void getImage(ros::Time *target_timestamp, cv::Mat *image);
-    void grab();
     bool timing;
 private:
     typedef rsc::threading::SynchronizedQueue<rsb::EventPtr> ImageQueue;
@@ -48,9 +47,15 @@ private:
 
     rsb::ListenerPtr imageListener;
     rsb::MetaData imageMetaData;
-    std::recursive_mutex mtx;
+
     cv::Mat output_frame;
     cv::Mat source_frame;
+
     ros::Time timestamp;
+
     int usingCamera, width, height;
+
+    std::string host;
+    std::string port;
+    std::recursive_mutex mtx;
 };

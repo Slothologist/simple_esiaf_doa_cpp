@@ -46,60 +46,57 @@ using namespace rst::math;
 using namespace rst::geometry;
 
 
-Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _scope, std::string _host, bool socket_input) {
+Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _scope, std::string _host, std::string _port) {
+
     timing = _timing;
     width = _width;
     height = _height;
+    host = _host;
+    port = _port;
     imageQueue = ImageQueuePtr(new ImageQueue(1));
     imageHandler = ImageHandlerPtr(new ImageHandler(imageQueue));
+
     rsb::converter::Converter<std::string>::Ptr image_c(new rst::converters::opencv::IplImageConverter());
     rsb::converter::converterRepository<string>()->registerConverter(image_c);
 
     rsb::Factory &factory = rsb::getFactory();
 
-    // Create listener
     rsb::ParticipantConfig listenerConfig = factory.getDefaultParticipantConfig();
-    if (socket_input) {
-      set<rsb::ParticipantConfig::Transport> enabledTransports = listenerConfig.getTransports();
-      for (set<rsb::ParticipantConfig::Transport>::const_iterator transportIt =
-              enabledTransports.begin(); transportIt != enabledTransports.end();
-              ++transportIt) {
-          listenerConfig.mutableTransport(transportIt->getName()).setEnabled(false);
-      }
-      listenerConfig.mutableTransport("socket").setEnabled(true);
-      listenerConfig.mutableTransport("socket").mutableOptions().set<string>("host", _host);
-      listenerConfig.mutableTransport("socket").mutableOptions().set<string>("port", "5556");
+
+    set<rsb::ParticipantConfig::Transport> enabledTransports = listenerConfig.getTransports();
+
+    for (set<rsb::ParticipantConfig::Transport>::const_iterator transportIt =
+            enabledTransports.begin(); transportIt != enabledTransports.end();
+            ++transportIt) {
+        listenerConfig.mutableTransport(transportIt->getName()).setEnabled(false);
     }
 
+    listenerConfig.mutableTransport("socket").setEnabled(true);
+    listenerConfig.mutableTransport("socket").mutableOptions().set<string>("host", host);
+    listenerConfig.mutableTransport("socket").mutableOptions().set<string>("port", port);
+    listenerConfig.mutableTransport("socket").mutableOptions().set<string>("server", "0");
+
     imageListener = factory.createListener(rsb::Scope(_scope), listenerConfig);
+    imageListener->addHandler(imageHandler);
 }
 
 Grabber_RSB::~Grabber_RSB() {}
 
-void Grabber_RSB::grab() {
-    rsb::EventPtr imageEvent = imageQueue->pop();
-    if (imageEvent->getType() == rsc::runtime::typeName<IplImage>()) {
-        ros::Time now = ros::Time::now();
-        timestamp = now;
-        boost::shared_ptr<IplImage> image = boost::static_pointer_cast<IplImage>(imageEvent->getData());
-        imageMetaData = imageEvent->getMetaData();
-        source_frame = image.get();
-        mtx.lock();
-        cv::Size size(width, height);
-        if (source_frame.rows > 0 && source_frame.cols > 0 && source_frame.rows != width && source_frame.cols != height) {
-             cv::resize(source_frame, output_frame, size);
-        } else {
-            output_frame = source_frame;
-        }
-        mtx.unlock();
-    }
-}
-
 void Grabber_RSB::getImage(ros::Time *target_timestamp, cv::Mat *image) {
+    rsb::EventPtr imageEvent = imageQueue->pop();
     mtx.lock();
-    *image = output_frame;
-    if (target_timestamp != NULL) {
-        *target_timestamp = timestamp;
+    if (imageEvent->getType() == rsc::runtime::typeName<IplImage>()) {
+        // TODO: Implement createTime to ROS::TIME
+        ros::Time now = ros::Time::now();
+        *target_timestamp = now;
+        boost::shared_ptr<IplImage> newImage = boost::static_pointer_cast<IplImage>(imageEvent->getData());
+        imageMetaData = imageEvent->getMetaData();
+        if (newImage->width != width && newImage->height != height) {
+            cv::Size size(width, height);
+            cv::resize(cv::Mat(newImage.get(), false), *image, size);
+        } else {
+            (*image) = cv::Mat(newImage.get(), true);
+        }
     }
     mtx.unlock();
 }

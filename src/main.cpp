@@ -36,14 +36,16 @@ int main(int argc, char *const argv[]) {
     string ros_input_scope = "/usb_cam/image_raw";
     string rsb_input_scope = "/usb_cam/image_raw";
     string ros_topic = "robotgazetools";
+    string rsb_port = "5556";
+    string rsb_host = "localhost";
     bool faces_flag = false;
     bool viz_flag = false;
     bool saliency_flag = false;
     bool fit_flag = false;
     bool timing_flag = false;
-    bool native_grabber = true;
-    bool ros_source = false;
-    bool rsb_source = false;
+    bool is_native = true;
+    bool is_ros = false;
+    bool is_rsb = false;
     int rate = 30;
     int width = 320;
     int height = 240;
@@ -108,11 +110,29 @@ int main(int argc, char *const argv[]) {
         iheight.add_options()
                 ("height", value<int>(), "height=NUMBER (default is 320 pixel)");
 
+        options_description rsbport("rsbport options");
+        rsbport.add_options()
+                ("rsbport", value<string>(), "rsbport=$topic");
+
+        options_description rsbhost("rsbhost options");
+        rsbhost.add_options()
+                ("rsbhost", value<string>(), "rsbhost=$topic");
+
         options_description all("Allowed options");
-        all.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(rossource).add(rostopic).add(rsbsource).add(iwidth).add(iheight);
+        all.add(general).add(dlib).add(saliency)
+                .add(faces).add(viz).add(fit)
+                .add(timing).add(framerate)
+                .add(rossource).add(rostopic)
+                .add(rsbsource).add(iwidth)
+                .add(iheight).add(rsbhost).add(rsbport);
 
         options_description visible("Allowed options");
-        visible.add(general).add(dlib).add(saliency).add(faces).add(viz).add(fit).add(timing).add(framerate).add(rostopic).add(rossource).add(rsbsource).add(iwidth).add(iheight);
+        visible.add(general).add(dlib).add(saliency)
+                .add(faces).add(viz).add(fit)
+                .add(timing).add(framerate)
+                .add(rossource).add(rostopic)
+                .add(rsbsource).add(iwidth)
+                .add(iheight).add(rsbhost).add(rsbport);
 
         variables_map vm;
 
@@ -215,33 +235,21 @@ int main(int argc, char *const argv[]) {
             const string &s = vm["rossource"].as<string>();
             ros_input_scope = s;
             // ximea_flag = false;
-            native_grabber = false;
-            ros_source = true;
-            cout << ">>> ROSSOURCE is:" << s << "\n";
+            is_native = false;
+            is_ros = true;
+            is_rsb = false;
+            cout << ">>> ROS source is:" << s << "\n";
         } else {
-            cout << ">>> ROSSOURCE: OFF" << "\n";
-            ros_source = false;
+            cout << ">>> ROS source: OFF" << "\n";
+            is_ros = false;
         }
 
         if (vm.count("rostopic")) {
             const string &s = vm["rostopic"].as<string>();
             ros_topic = s;
-            cout << ">>> ROSTOPIC is:" << s << "\n";
+            cout << ">>> ROStopic is:" << s << "\n";
         } else {
-            cout << ">>> ROSTOPIC is:" << ros_topic <<"\n";
-        }
-
-        if (vm.count("rsbsource")) {
-            const string &s = vm["rsbsource"].as<string>();
-            rsb_input_scope = s;
-            // ximea_flag = false;
-            native_grabber = false;
-            ros_source = false;
-            rsb_source = true;
-            cout << ">>> RSBSOURCE is:" << s << "\n";
-        } else {
-            cout << ">>> RSBSOURCE: OFF" << "\n";
-            ros_source = false;
+            cout << ">>> ROStopic is:" << ros_topic <<"\n";
         }
 
         if (vm.count("width")) {
@@ -260,14 +268,43 @@ int main(int argc, char *const argv[]) {
             cout << ">>> Image width is: " << height << "\n";
         }
 
+        if (vm.count("rsbsource")) {
+            const string &s = vm["rsbsource"].as<string>();
+            rsb_input_scope = s;
+            // ximea_flag = false;
+            is_native = false;
+            is_ros = false;
+            is_rsb = true;
+            cout << ">>> RSB source is: " << s << "\n";
+        } else {
+            cout << ">>> RSB source: OFF" << "\n";
+            is_rsb = false;
+        }
+
+        if (vm.count("rsbhost")) {
+            const string &s = vm["rsbhost"].as<string>();
+            rsb_host = s;
+            cout << ">>> RSB host is: " << s << "\n";
+        } else {
+            cout << ">>> RSB host is: " << rsb_host << "\n";
+        }
+
+        if (vm.count("rsbport")) {
+            const string &s = vm["rsbport"].as<string>();
+            rsb_port = s;
+            cout << ">>> RSB port is: " << s << "\n";
+        } else {
+            cout << ">>> RSB port is: " << rsb_port << "\n";
+        }
+
         /*
         if (vm.count("ximea")) {
             const string &s = vm["ximea"].as<string>();
             if (s == "ON") {
                 cout << ">>> Using XIMEA: " << s << "\n";
                 ximea_flag = true;
-                native_grabber = false;
-                ros_source = false;
+                is_native = false;
+                is_ros = false;
             } else {
                 cout << ">>> Using XIMEA: " << s << "\n";
                 ximea_flag = false;
@@ -309,7 +346,7 @@ int main(int argc, char *const argv[]) {
     }
     */
 
-    if (ros_source) {
+    if (is_ros) {
 
         // ROS Grabber
         Grabber_ROS grabber(timing_flag, width, height, ros_input_scope);
@@ -332,10 +369,10 @@ int main(int argc, char *const argv[]) {
         ros::spin();
     }
 
-    if (rsb_source) {
+    if (is_rsb) {
 
         // ROS Grabber
-        Grabber_RSB grabber(timing_flag, width, height, ros_input_scope, "apw", "5556");
+        Grabber_RSB grabber(timing_flag, width, height, rsb_input_scope, rsb_host, rsb_port);
 
         // DLIB
         Faces fac(ros_topic);
@@ -356,7 +393,7 @@ int main(int argc, char *const argv[]) {
         ros::spin();
     }
 
-    if (native_grabber) {
+    if (is_native) {
 
         // STD Device Grabber
         Grabber grabber;
