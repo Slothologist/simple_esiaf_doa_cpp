@@ -71,7 +71,7 @@ void Saliency::setup(Grabber *grab, int camera, bool _vis) {
     is_ros = false;
 }
 
-void Saliency::getSaliency(bool saliency_flag, bool timing) {
+void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
 
     ros::Time start = ros::Time::now();
     ros::Time last_frame_timestamp = ros::Time::now();
@@ -194,6 +194,8 @@ void Saliency::getSaliency(bool saliency_flag, bool timing) {
             imshow("Simple Robot Gaze Tools || NMPT Salience || Press Q to Quit", viz);
             cv::waitKey(1);
         }
+
+        usleep(throttle);
 
         if (timing) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();

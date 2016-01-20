@@ -49,6 +49,7 @@ int main(int argc, char *const argv[]) {
     int rate = 30;
     int width = 320;
     int height = 240;
+    int throttle_hard = 0;
 
     // Programm options
     try {
@@ -85,6 +86,10 @@ int main(int argc, char *const argv[]) {
         options_description framerate("framerate options");
         framerate.add_options()
                 ("framerate", value<int>()->default_value(30), "framerate <value> (default is 30)");
+
+        options_description throttle("throttle options");
+        throttle.add_options()
+                ("throttle", value<int>()->default_value(0), "throttle threads in nano seconds (default 0)");
 
         // options_description ximea("ximea options");
         // ximea.add_options()
@@ -124,7 +129,8 @@ int main(int argc, char *const argv[]) {
                 .add(timing).add(framerate)
                 .add(rossource).add(rostopic)
                 .add(rsbsource).add(iwidth)
-                .add(iheight).add(rsbhost).add(rsbport);
+                .add(iheight).add(rsbhost)
+                .add(rsbport).add(throttle);
 
         options_description visible("Allowed options");
         visible.add(general).add(dlib).add(saliency)
@@ -132,7 +138,8 @@ int main(int argc, char *const argv[]) {
                 .add(timing).add(framerate)
                 .add(rossource).add(rostopic)
                 .add(rsbsource).add(iwidth)
-                .add(iheight).add(rsbhost).add(rsbport);
+                .add(iheight).add(rsbhost)
+                .add(rsbport).add(throttle);
 
         variables_map vm;
 
@@ -268,6 +275,14 @@ int main(int argc, char *const argv[]) {
             cout << ">>> Image width is: " << height << "\n";
         }
 
+        if (vm.count("throttle")) {
+            int t = vm["throttle"].as<int>();
+            throttle_hard = t;
+            cout << ">>> Throttle is: " << throttle_hard << "\n";
+        } else {
+            cout << ">>> Throttle is: " << throttle_hard << "\n";
+        }
+
         if (vm.count("rsbsource")) {
             const string &s = vm["rsbsource"].as<string>();
             rsb_input_scope = s;
@@ -356,14 +371,14 @@ int main(int argc, char *const argv[]) {
         if (faces_flag) {
             fac.setPathROS(&grabber, dlib_path, viz_flag, fit_flag);
         }
-        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
+        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
 
         // NMPT
         Saliency sal(ros_topic);
         if (saliency_flag) {
             sal.setupROS(&grabber, grabber.getCamera(), viz_flag);
         }
-        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
+        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
         cout << ">>> GRABBER RUNNING in ROS MODE" << "\n";
         ros::spin();
@@ -379,7 +394,7 @@ int main(int argc, char *const argv[]) {
         if (faces_flag) {
             fac.setPathRSB(&grabber, dlib_path, viz_flag, fit_flag);
         }
-        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
+        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
 
         // NMPT
         Saliency sal(ros_topic);
@@ -387,7 +402,7 @@ int main(int argc, char *const argv[]) {
             unsigned int c = 1;
             sal.setupRSB(&grabber, c, viz_flag);
         }
-        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
+        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
         cout << ">>> GRABBER RUNNING in RSB MODE" << "\n";
         ros::spin();
@@ -405,14 +420,14 @@ int main(int argc, char *const argv[]) {
         if (faces_flag) {
             fac.setPath(&grabber, dlib_path, viz_flag, fit_flag);
         }
-        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
+        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
 
         // NMPT
         Saliency sal(ros_topic);
         if (saliency_flag) {
             sal.setup(&grabber, grabber.getCamera(), viz_flag);
         }
-        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
+        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
         cout << ">>> GRABBER RUNNING in NATIVE MODE" << "\n";
         ros::spin();

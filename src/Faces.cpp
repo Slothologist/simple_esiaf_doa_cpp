@@ -109,7 +109,7 @@ void Faces::setPathRSB(Grabber_RSB *grab, string path, bool _vis, bool _fit) {
 }
 
 
-void Faces::getFaces(bool faces_flag, bool timing) {
+void Faces::getFaces(bool faces_flag, bool timing, int throttle) {
 
     ros::Time start = ros::Time::now();
     ros::Time last_frame_timestamp = ros::Time::now();
@@ -205,6 +205,8 @@ void Faces::getFaces(bool faces_flag, bool timing) {
                 win.add_overlay(dlib::render_face_detections(shapes));
             }
         }
+
+        usleep(throttle);
 
         if (timing) {
             boost::posix_time::ptime c = boost::posix_time::microsec_clock::local_time();

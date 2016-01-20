@@ -14,7 +14,7 @@ class Saliency {
 public:
     Saliency(std::string topic);
     ~Saliency();
-    void getSaliency(bool saliency_flag, bool timing);
+    void getSaliency(bool saliency_flag, bool timing, int throttle);
     void setup(Grabber *grab, int camera, bool _vis);
     void setupROS(Grabber_ROS *grab, int camera, bool _vis);
     void setupRSB(Grabber_RSB *grab, int camera, bool _vis);

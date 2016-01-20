@@ -19,7 +19,7 @@ class Faces {
 public:
     Faces(std::string topic);
     ~Faces();
-    void getFaces(bool faces_flag, bool timing);
+    void getFaces(bool faces_flag, bool timing, int throttle);
     // void setPathXimea(Grabber_XIMEA *grab, std::string path, bool _vis, bool _fit);
     void setPath(Grabber *grab, std::string path, bool _vis, bool _fit);
     void setPathROS(Grabber_ROS *grab, std::string path, bool _vis, bool _fit);
