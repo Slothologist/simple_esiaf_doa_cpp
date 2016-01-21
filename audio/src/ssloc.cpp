@@ -264,7 +264,7 @@ private:
      */
     void processNextSoundBlock() {
         SAMPLE_TYPE* bufs[2];
-        bufs[0] = _rightresizeBuffer;
+        bufs[0] = _rightBuffer;
         bufs[1] = _leftBuffer;
         int err;
         if ((err = snd_pcm_readn(_capture_handle, (void**) bufs, _bufferSize))
