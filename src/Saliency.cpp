@@ -87,22 +87,28 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
         boost::posix_time::ptime init = boost::posix_time::microsec_clock::local_time();
 
         ros::Time frame_timestamp;
+        cv::Mat im_source;
         cv::Mat im;
 
-        // if (is_ximea) {
-        //     grabber_x->getImage(&frame_timestamp, &im);
-        // }
+        // Always resize Saliency to !! 320x240 !! in order to
+        // reduce computation time. This resolution is enough
+        // to compute salient points (from my experience)
+        cv::Size(320,240);
 
         if (is_native) {
-            grabber->getImage(&frame_timestamp, &im);
+            grabber->getImage(&frame_timestamp, &im_source);
+            cv::resize(im_source, im, size);
         }
 
         if (is_ros) {
-            grabber_ros->getImage(&frame_timestamp, &im);
+            grabber_ros->getImage(&frame_timestamp, &im_source);
+            cv::resize(im_source, im, size);
+
         }
 
         if (is_rsb) {
-            grabber_rsb->getImage(&frame_timestamp, &im);
+            grabber_rsb->getImage(&frame_timestamp, &im_source);
+            cv::resize(im_source, im, size);
         }
 
         // If no image has been grabbed yet...wait.

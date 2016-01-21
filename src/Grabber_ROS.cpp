@@ -45,7 +45,7 @@ void Grabber_ROS::imageCallback(const sensor_msgs::ImageConstPtr &msg) {
     timestamp = frame_time;
     mtx.lock();
     source_frame = cv_ptr->image;
-    if (source_frame.rows > 0 && source_frame.cols > 0 && source_frame.rows != width && source_frame.cols != height) {
+    if (source_frame.rows != width && source_frame.cols != height) {
          cv::resize(source_frame, output_frame, size);
     } else {
         output_frame = source_frame;
