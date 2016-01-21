@@ -97,30 +97,47 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
 
         if (is_native) {
             grabber->getImage(&frame_timestamp, &im_source);
-            if (im.rows != 320) {
+            // If no image has been grabbed yet...wait.
+            if (im_source.rows == 0) {
+                cout << "[Saliency] waiting for next image to be grabbed..." << endl;
+                usleep(1000);
+                continue;
+            }
+            if (im_source.rows != 320) {
                 cv::resize(im_source, im, size);
+            } else {
+                im = im_source;
             }
         }
 
         if (is_ros) {
             grabber_ros->getImage(&frame_timestamp, &im_source);
-            if (im.rows != 320) {
+            // If no image has been grabbed yet...wait.
+            if (im_source.rows == 0) {
+                cout << "[Saliency] waiting for next image to be grabbed..." << endl;
+                usleep(1000);
+                continue;
+            }
+            if (im_source.rows != 320) {
                 cv::resize(im_source, im, size);
+            } else {
+                im = im_source;
             }
         }
 
         if (is_rsb) {
             grabber_rsb->getImage(&frame_timestamp, &im_source);
-            if (im.rows != 320) {
-                cv::resize(im_source, im, size);
+            // If no image has been grabbed yet...wait.
+            if (im_source.rows == 0) {
+                cout << "[Saliency] waiting for next image to be grabbed..." << endl;
+                usleep(1000);
+                continue;
             }
-        }
-
-        // If no image has been grabbed yet...wait.
-        if (im.rows == 0 || im.cols == 0) {
-            cout << "[Saliency] waiting for next image to be grabbed..." << endl;
-            usleep(1000);
-            continue;
+            if (im_source.rows != 320) {
+                cv::resize(im_source, im, size);
+            } else {
+                im = im_source;
+            }
         }
 
         std_msgs::Header h;
