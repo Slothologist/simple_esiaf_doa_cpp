@@ -97,18 +97,23 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
 
         if (is_native) {
             grabber->getImage(&frame_timestamp, &im_source);
-            cv::resize(im_source, im, size);
+            if (im.rows != 320) {
+                cv::resize(im_source, im, size);
+            }
         }
 
         if (is_ros) {
             grabber_ros->getImage(&frame_timestamp, &im_source);
-            cv::resize(im_source, im, size);
-
+            if (im.rows != 320) {
+                cv::resize(im_source, im, size);
+            }
         }
 
         if (is_rsb) {
             grabber_rsb->getImage(&frame_timestamp, &im_source);
-            cv::resize(im_source, im, size);
+            if (im.rows != 320) {
+                cv::resize(im_source, im, size);
+            }
         }
 
         // If no image has been grabbed yet...wait.
