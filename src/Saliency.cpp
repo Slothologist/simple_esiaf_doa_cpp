@@ -93,7 +93,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
         // Always resize Saliency to !! 320x240 !! in order to
         // reduce computation time. This resolution is enough
         // to compute salient points (from my experience)
-        cv::Size(320,240);
+        cv::Size size(320,240);
 
         if (is_native) {
             grabber->getImage(&frame_timestamp, &im_source);
