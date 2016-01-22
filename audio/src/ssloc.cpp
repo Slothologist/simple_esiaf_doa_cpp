@@ -126,11 +126,11 @@ class SoundSourceLoc {
     static const int _bufferSize = 4096;
 
     /**
-     * Take a point for sound loc is level > 105% of mean level. <br/>
+     * Take a point for sound loc is level > 110% of mean level. <br/>
      * This allows to compute sound loc only for "meaningful" sounds, not
      * background noise.
      */
-    static constexpr float _minLevelFactorForValidLoc = 1.05f;
+    float _minLevelFactorForValidLoc = 1.10f;
 
     /**
      * sound speed in meters per seconds
@@ -145,7 +145,7 @@ class SoundSourceLoc {
     /**
      * Distance between microphones in meters
      */
-    static constexpr float _distanceBetweenMicrophones = 0.3f;
+    float _distanceBetweenMicrophones = 0.5f;
 
     /** An utility to compute the running average of sound power */
     RunningAverage* _averageSoundLevel;
@@ -169,6 +169,8 @@ public:
 
         _averageSoundLevel = new RunningAverage(50);
         _soundSamplingRate = 44100;
+        _distanceBetweenMicrophones = atof(argv[3]);
+        _minLevelFactorForValidLoc = atof(argv[4]);
 
         // sampling: 2 chanels, 44 KHz, 16 bits.
         int err;
@@ -346,6 +348,10 @@ private:
 };
 
 int main(int argc, char *argv[]) {
+
+    if (argc < 4) {
+        cout << "You need to provide the following arguments: DEVICENAME OUTTOPIC DISTANCE LEVEL";
+    }
 
     SoundSourceLoc soundLoc(argc, argv);
     soundLoc.run();
