@@ -315,11 +315,11 @@ private:
                                             * _distanceBetweenMicrophones));
 
             // cout << angle << " <--- " << relativeLevel << endl;
-            float degree = angle*180/M_PI;
-
             // Set Positive avalues only 0 == left, 180 == right
+            float degree = (angle*180/M_PI)+90.0f;
+
             if ( std::isnan(degree) == false ) {
-                cout << (angle*180/M_PI)+90.0f << " <--- Degree " << relativeLevel << " <--- Relative Sound Level" << endl;
+                cout << degree << " <--- Degree " << relativeLevel << " <--- Relative Sound Level" << endl;
                 rs->send_ssloc(degree, relativeLevel);
             }
         }
