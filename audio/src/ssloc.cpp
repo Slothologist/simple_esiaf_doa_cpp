@@ -317,8 +317,9 @@ private:
             // cout << angle << " <--- " << relativeLevel << endl;
             float degree = angle*180/M_PI;
 
+            // Set Positive avalues only 0 == left, 180 == right
             if ( std::isnan(degree) == false ) {
-                cout << angle*180/M_PI << " <--- Degree " << relativeLevel << " <--- Relative Sound Level" << endl;
+                cout << (angle*180/M_PI)+90.0f << " <--- Degree " << relativeLevel << " <--- Relative Sound Level" << endl;
                 rs->send_ssloc(degree, relativeLevel);
             }
         }
