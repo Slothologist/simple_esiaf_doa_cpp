@@ -15,12 +15,11 @@ public:
     Saliency(std::string topic);
     ~Saliency();
     void getSaliency(bool saliency_flag, bool timing, int throttle);
-    void setup(Grabber *grab, int camera, bool _vis);
-    void setupROS(Grabber_ROS *grab, int camera, bool _vis);
-    void setupRSB(Grabber_RSB *grab, int camera, bool _vis);
+    void setup(Grabber *grab, int camera, bool _vis, double _sal_sens);
+    void setupROS(Grabber_ROS *grab, int camera, bool _vis, double _sal_sens);
+    void setupRSB(Grabber_RSB *grab, int camera, bool _vis, double _sal_sens);
     // void setupXimea(Grabber_XIMEA *grab, int camera, bool _vis);
 protected:
-
     // NMPT
     BlockTimer bt;
     cv::Mat viz, sal;
@@ -48,6 +47,6 @@ protected:
     // Default: FastSalience salTracker;
     FastSalience salTracker;
     std::vector<double> lqrpt{2, .5};
-    // Deafault: salientSpot{2};
-    LQRPointTracker salientSpot{2, 1.0, 0, .015};
+    // Default: salientSpot{2};
+    LQRPointTracker * salientSpot;
 };

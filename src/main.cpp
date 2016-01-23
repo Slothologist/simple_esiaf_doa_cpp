@@ -50,6 +50,7 @@ int main(int argc, char *const argv[]) {
     int width = 320;
     int height = 240;
     int throttle_hard = 0;
+    double sal_s = 1.0;
 
     // Programm options
     try {
@@ -123,6 +124,10 @@ int main(int argc, char *const argv[]) {
         rsbhost.add_options()
                 ("rsbhost", value<string>(), "rsbhost=$topic");
 
+        options_description salsense("saliency sensitivity options");
+        salsense.add_options()
+                ("salsens", value<double>(), "salsens=NUMBER (default is 1.0)");
+
         options_description all("Allowed options");
         all.add(general).add(dlib).add(saliency)
                 .add(faces).add(viz).add(fit)
@@ -130,7 +135,7 @@ int main(int argc, char *const argv[]) {
                 .add(rossource).add(rostopic)
                 .add(rsbsource).add(iwidth)
                 .add(iheight).add(rsbhost)
-                .add(rsbport).add(throttle);
+                .add(rsbport).add(throttle).add(salsense);
 
         options_description visible("Allowed options");
         visible.add(general).add(dlib).add(saliency)
@@ -139,7 +144,7 @@ int main(int argc, char *const argv[]) {
                 .add(rossource).add(rostopic)
                 .add(rsbsource).add(iwidth)
                 .add(iheight).add(rsbhost)
-                .add(rsbport).add(throttle);
+                .add(rsbport).add(throttle).add(salsense);
 
         variables_map vm;
 
@@ -275,6 +280,14 @@ int main(int argc, char *const argv[]) {
             cout << ">>> Image width is: " << height << "\n";
         }
 
+        if (vm.count("salsense")) {
+            double s = vm["salsense"].as<double>();
+            sal_s = s;
+            cout << ">>> Saliency is: " << sal_s << "\n";
+        } else {
+            cout << ">>> Saliency is: " << sal_s << "\n";
+        }
+
         if (vm.count("throttle")) {
             int t = vm["throttle"].as<int>();
             throttle_hard = t;
@@ -376,7 +389,7 @@ int main(int argc, char *const argv[]) {
         // NMPT
         Saliency sal(ros_topic);
         if (saliency_flag) {
-            sal.setupROS(&grabber, grabber.getCamera(), viz_flag);
+            sal.setupROS(&grabber, grabber.getCamera(), viz_flag, sal_s);
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
@@ -400,7 +413,7 @@ int main(int argc, char *const argv[]) {
         Saliency sal(ros_topic);
         if (saliency_flag) {
             unsigned int c = 1;
-            sal.setupRSB(&grabber, c, viz_flag);
+            sal.setupRSB(&grabber, c, viz_flag, sal_s);
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
@@ -425,7 +438,7 @@ int main(int argc, char *const argv[]) {
         // NMPT
         Saliency sal(ros_topic);
         if (saliency_flag) {
-            sal.setup(&grabber, grabber.getCamera(), viz_flag);
+            sal.setup(&grabber, grabber.getCamera(), viz_flag, sal_s);
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 

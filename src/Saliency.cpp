@@ -10,6 +10,9 @@
 // BOOST
 #include "boost/date_time/posix_time/posix_time.hpp"
 
+//NMPT
+#include <nmpt/LQRPointTracker.h>
+
 using namespace std;
 using namespace cv;
 
@@ -33,11 +36,11 @@ void Saliency::setupXimea(Grabber_XIMEA *grab, int camera, bool _vis) {
 }
 */
 
-void Saliency::setupROS(Grabber_ROS *grab, int camera, bool _vis) {
+void Saliency::setupROS(Grabber_ROS *grab, int camera, bool _vis, double _sal_sens) {
     grabber_ros = grab;
     usingCamera = camera;
     bt.blockRestart(1);
-    salientSpot.setTrackerTarget(lqrpt);
+    salientSpot->setTrackerTarget(lqrpt);
     salTracker.setUseDoEFeatures(1);
     vizu = _vis;
     is_ximea = false;
@@ -45,11 +48,11 @@ void Saliency::setupROS(Grabber_ROS *grab, int camera, bool _vis) {
     is_ros = true;
 }
 
-void Saliency::setupRSB(Grabber_RSB *grab, int camera, bool _vis) {
+void Saliency::setupRSB(Grabber_RSB *grab, int camera, bool _vis, double _sal_sens) {
     grabber_rsb = grab;
     usingCamera = camera;
     bt.blockRestart(1);
-    salientSpot.setTrackerTarget(lqrpt);
+    salientSpot->setTrackerTarget(lqrpt);
     salTracker.setUseDoEFeatures(1);
     vizu = _vis;
     is_ximea = false;
@@ -59,11 +62,12 @@ void Saliency::setupRSB(Grabber_RSB *grab, int camera, bool _vis) {
 }
 
 
-void Saliency::setup(Grabber *grab, int camera, bool _vis) {
+void Saliency::setup(Grabber *grab, int camera, bool _vis, double _sal_sens) {
     grabber = grab;
     usingCamera = camera;
     bt.blockRestart(1);
-    salientSpot.setTrackerTarget(lqrpt);
+    salientSpot = new LQRPointTracker(2, _sal_sens, 0, .015);
+    salientSpot->setTrackerTarget(lqrpt);
     salTracker.setUseDoEFeatures(1);
     vizu = _vis;
     is_ximea = false;
@@ -175,7 +179,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
         lqrpt[0] = maxloc.x * 1.0 / sal.cols;
         lqrpt[1] = maxloc.y * 1.0 / sal.rows;
 
-        salientSpot.setTrackerTarget(lqrpt);
+        salientSpot->setTrackerTarget(lqrpt);
 
         vizRect = viz(Rect(im.cols, 0, im.cols, im.rows));
         cvtColor(sal, vizRect, CV_GRAY2BGR);
@@ -187,8 +191,8 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
             circle(vizRect, pts[i].pt, 2, CV_RGB(0, 255, 0));
         }
 
-        salientSpot.updateTrackerPosition();
-        lqrpt = salientSpot.getCurrentPosition();
+        salientSpot->updateTrackerPosition();
+        lqrpt = salientSpot->getCurrentPosition();
 
         circle(vizRect, Point(lqrpt[0] * sal.cols, lqrpt[1] * sal.rows), 6, CV_RGB(0, 0, 255));
         circle(vizRect, Point(lqrpt[0] * sal.cols, lqrpt[1] * sal.rows), 5, CV_RGB(0, 0, 255));
