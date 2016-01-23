@@ -40,6 +40,7 @@ void Saliency::setupROS(Grabber_ROS *grab, int camera, bool _vis, double _sal_se
     grabber_ros = grab;
     usingCamera = camera;
     bt.blockRestart(1);
+    salientSpot = new LQRPointTracker(2, _sal_sens, 0, .015);
     salientSpot->setTrackerTarget(lqrpt);
     salTracker.setUseDoEFeatures(1);
     vizu = _vis;
@@ -52,6 +53,7 @@ void Saliency::setupRSB(Grabber_RSB *grab, int camera, bool _vis, double _sal_se
     grabber_rsb = grab;
     usingCamera = camera;
     bt.blockRestart(1);
+    salientSpot = new LQRPointTracker(2, _sal_sens, 0, .015);
     salientSpot->setTrackerTarget(lqrpt);
     salTracker.setUseDoEFeatures(1);
     vizu = _vis;
