@@ -319,7 +319,7 @@ private:
             float degree = (angle*180/M_PI)+90.0f;
 
             if ( std::isnan(degree) == false ) {
-                cout << degree << " <--- Degree " << relativeLevel << " <--- Relative Sound Level" << endl;
+                cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Sound Level ---> " << relativeLevel << endl;
                 rs->send_ssloc(degree, relativeLevel);
             }
         }
