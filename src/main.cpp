@@ -124,8 +124,8 @@ int main(int argc, char *const argv[]) {
         rsbhost.add_options()
                 ("rsbhost", value<string>(), "rsbhost=$topic");
 
-        options_description salsense("saliency sensitivity options");
-        salsense.add_options()
+        options_description salsens("saliency sensitivity options");
+        salsens.add_options()
                 ("salsens", value<double>(), "salsens=NUMBER (default is 1.0)");
 
         options_description all("Allowed options");
@@ -135,7 +135,7 @@ int main(int argc, char *const argv[]) {
                 .add(rossource).add(rostopic)
                 .add(rsbsource).add(iwidth)
                 .add(iheight).add(rsbhost)
-                .add(rsbport).add(throttle).add(salsense);
+                .add(rsbport).add(throttle).add(salsens);
 
         options_description visible("Allowed options");
         visible.add(general).add(dlib).add(saliency)
@@ -144,7 +144,7 @@ int main(int argc, char *const argv[]) {
                 .add(rossource).add(rostopic)
                 .add(rsbsource).add(iwidth)
                 .add(iheight).add(rsbhost)
-                .add(rsbport).add(throttle).add(salsense);
+                .add(rsbport).add(throttle).add(salsens);
 
         variables_map vm;
 
@@ -280,12 +280,12 @@ int main(int argc, char *const argv[]) {
             cout << ">>> Image width is: " << height << "\n";
         }
 
-        if (vm.count("salsense")) {
-            double s = vm["salsense"].as<double>();
+        if (vm.count("salsens")) {
+            double s = vm["salsens"].as<double>();
             sal_s = s;
-            cout << ">>> Saliency is: " << sal_s << "\n";
+            cout << ">>> Salience sensitivity is: " << s << "\n";
         } else {
-            cout << ">>> Saliency is: " << sal_s << "\n";
+            cout << ">>> Saliency sensitivity: " << sal_s << "\n";
         }
 
         if (vm.count("throttle")) {
