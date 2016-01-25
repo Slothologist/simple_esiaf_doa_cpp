@@ -109,7 +109,7 @@ class SoundSourceLoc {
      * and microphones distance, or just try and put the max value you get with
      * extreme loc of sound. Guess what I did :-)
      */
-    static const int _nbSamplesMaxDiff = 48;
+    static const int _nbSamplesMaxDiff = 36;
 
     /**
      * Buffer size on which we will try to locate sound. <br/>
