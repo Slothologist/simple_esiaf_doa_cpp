@@ -173,6 +173,12 @@ public:
         _minLevelFactorForValidLoc = atof(argv[4]);
         _nbSamplesMaxDiff = (_distanceBetweenMicrophones/_soundSpeed)*_soundSamplingRate+1;
       
+        cout << "Average Sound Level -->" << _averageSoundLevel << endl;
+        cout << "Sound Sampling Rate -->" << _soundSamplingRate << endl;
+        cout << "Activation Level -->" << _minLevelFactorForValidLoc << endl;
+        cout << "Mic Distance -->" << _distanceBetweenMicrophones << endl;
+        cout << "max Sample Diff" << _nbSamplesMaxDiff << endl;
+
         // sampling: 2 chanels, 44 KHz, 16 bits.
         int err;
         snd_pcm_hw_params_t* hw_params;
