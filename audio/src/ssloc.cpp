@@ -109,7 +109,7 @@ class SoundSourceLoc {
      * and microphones distance, or just try and put the max value you get with
      * extreme loc of sound. Guess what I did :-)
      */
-    static const int _nbSamplesMaxDiff = 24;
+    int _nbSamplesMaxDiff;
 
     /**
      * Buffer size on which we will try to locate sound. <br/>
@@ -167,11 +167,12 @@ public:
         rs = new ROSComm();
         rs->init_ros(argc, argv);
 
-        _averageSoundLevel = new RunningAverage(100);
+        _averageSoundLevel = new RunningAverage(50);
         _soundSamplingRate = 44100;
         _distanceBetweenMicrophones = atof(argv[3]);
         _minLevelFactorForValidLoc = atof(argv[4]);
-
+        _nbSamplesMaxDiff = (_distanceBetweenMicrophones/_soundSpeed)*_soundSamplingRate+1;
+      
         // sampling: 2 chanels, 44 KHz, 16 bits.
         int err;
         snd_pcm_hw_params_t* hw_params;
