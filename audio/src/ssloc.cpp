@@ -47,7 +47,7 @@ public:
         pub_s = n.advertise<geometry_msgs::PointStamped>(argv[2], 2);
     }
 
-    void send_ssloc(float _angle, float _default_azimuth, float _sound_level) {
+    void send_ssloc(float _angle, float _default_elevation, float _sound_level) {
         std_msgs::Header h;
         h.stamp = ros::Time::now();
         h.frame_id = "0";
@@ -55,7 +55,7 @@ public:
         geometry_msgs::PointStamped ps;
         geometry_msgs::Point p;
         p.x = _angle;
-        p.y = _default_azimuth;
+        p.y = _default_elevation;
         p.z = _sound_level;
         ps.point = p;
         ps.header = h;
@@ -135,7 +135,7 @@ class SoundSourceLoc {
     /**
     * Default Azimuth angle
     */
-    float _defaultAzimuthLevel = 0.0f;
+    float _defaultElevationLevel = 0.0f;
 
     /**
      * sound speed in meters per seconds
@@ -177,7 +177,7 @@ public:
         _distanceBetweenMicrophones = atof(argv[3]);
         _minLevelFactorForValidLoc = atof(argv[4]);
         if (argv.size() > 5) {
-            _defaultAzimuthLevel = atof(argv[5]);
+            _defaultElevationLevel = atof(argv[5]);
         }
         _nbSamplesMaxDiff = (_distanceBetweenMicrophones/_soundSpeed)*_soundSamplingRate+1;
       
@@ -185,7 +185,7 @@ public:
         cout << "Audio Sampling Rate --> " << _soundSamplingRate << endl;
         cout << "Microphone Distance (metres) --> " << _distanceBetweenMicrophones << endl;
         cout << "Max Sample Diff --> " << _nbSamplesMaxDiff << endl;
-        cout << "Default Azimuth Level --> " << _defaultAzimuthLevel << endl;
+        cout << "Default Azimuth Level --> " << _defaultElevationLevel << endl;
 
         // sampling: 2 chanels, 44 KHz, 16 bits.
         int err;
@@ -335,7 +335,7 @@ private:
 
             if ( std::isnan(degree) == false ) {
                 cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Audio Level ---> " << relativeLevel << endl;
-                rs->send_ssloc(degree, _default_azimuth, relativeLevel);
+                rs->send_ssloc(degree, _default_elevation, relativeLevel);
             }
         }
     }
@@ -366,7 +366,7 @@ private:
 int main(int argc, char *argv[]) {
 
     if (argc < 5) {
-        cout << "You need to provide the following arguments: DEVICENAME OUTTOPIC MIC_DISTANCE AUDIO_ACTIVATION_LEVEL [DEFAULT_AZIMUTH optional]";
+        cout << "You need to provide the following arguments: DEVICENAME OUTTOPIC MIC_DISTANCE AUDIO_ACTIVATION_LEVEL [DEFAULT_ELEVATION optional]";
         cout << "Example: plughw:0.0 /robotgazetools/audio 0.5 2.5 [0.0]"
     }
 
