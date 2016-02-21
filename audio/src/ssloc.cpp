@@ -8,7 +8,7 @@
 //   It uses 2 microphones, and compute the time of arrival difference of sound
 //   between them to estimate the sound source localization.
 //
-// Edited and Extended by Florian Lier [flier AT techfak.uni-bielefeld.de]
+// Edited and Extended by Florian Lier [flier AT techfak.uni-bielefeld dot de]
 //
 //============================================================================
 
@@ -47,7 +47,7 @@ public:
         pub_s = n.advertise<geometry_msgs::PointStamped>(argv[2], 2);
     }
 
-    void send_ssloc(float _angle, float _sound_level) {
+    void send_ssloc(float _angle, float _default_azimuth, float _sound_level) {
         std_msgs::Header h;
         h.stamp = ros::Time::now();
         h.frame_id = "0";
@@ -55,7 +55,7 @@ public:
         geometry_msgs::PointStamped ps;
         geometry_msgs::Point p;
         p.x = _angle;
-        p.y = 0.0;
+        p.y = _default_azimuth;
         p.z = _sound_level;
         ps.point = p;
         ps.header = h;
@@ -133,6 +133,11 @@ class SoundSourceLoc {
     float _minLevelFactorForValidLoc = 1.10f;
 
     /**
+    * Default Azimuth angle
+    */
+    float _defaultAzimuthLevel = 0.0f;
+
+    /**
      * sound speed in meters per seconds
      */
     static constexpr float _soundSpeed = 344;
@@ -171,12 +176,16 @@ public:
         _soundSamplingRate = 44100;
         _distanceBetweenMicrophones = atof(argv[3]);
         _minLevelFactorForValidLoc = atof(argv[4]);
+        if (argv.size() > 5) {
+            _defaultAzimuthLevel = atof(argv[5]);
+        }
         _nbSamplesMaxDiff = (_distanceBetweenMicrophones/_soundSpeed)*_soundSamplingRate+1;
       
-        cout << "Sound Sampling Rate --> " << _soundSamplingRate << endl;
-        cout << "Activation Level --> " << _minLevelFactorForValidLoc << endl;
-        cout << "Mic Distance --> " << _distanceBetweenMicrophones << endl;
+        cout << "Audio Activation Level --> " << _minLevelFactorForValidLoc << endl;
+        cout << "Audio Sampling Rate --> " << _soundSamplingRate << endl;
+        cout << "Microphone Distance (metres) --> " << _distanceBetweenMicrophones << endl;
         cout << "Max Sample Diff --> " << _nbSamplesMaxDiff << endl;
+        cout << "Default Azimuth Level --> " << _defaultAzimuthLevel << endl;
 
         // sampling: 2 chanels, 44 KHz, 16 bits.
         int err;
@@ -325,8 +334,8 @@ private:
             float degree = (angle*180/M_PI)+90.0f;
 
             if ( std::isnan(degree) == false ) {
-                cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Sound Level ---> " << relativeLevel << endl;
-                rs->send_ssloc(degree, relativeLevel);
+                cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Audio Level ---> " << relativeLevel << endl;
+                rs->send_ssloc(degree, _default_azimuth, relativeLevel);
             }
         }
     }
@@ -356,8 +365,9 @@ private:
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 4) {
-        cout << "You need to provide the following arguments: DEVICENAME OUTTOPIC DISTANCE LEVEL";
+    if (argc < 5) {
+        cout << "You need to provide the following arguments: DEVICENAME OUTTOPIC MIC_DISTANCE AUDIO_ACTIVATION_LEVEL [DEFAULT_AZIMUTH optional]";
+        cout << "Example: plughw:0.0 /robotgazetools/audio 0.5 2.5 [0.0]"
     }
 
     SoundSourceLoc soundLoc(argc, argv);
