@@ -176,7 +176,7 @@ public:
         _soundSamplingRate = 44100;
         _distanceBetweenMicrophones = atof(argv[3]);
         _minLevelFactorForValidLoc = atof(argv[4]);
-        if (argv.size() > 5) {
+        if (argc > 5) {
             _defaultElevationLevel = atof(argv[5]);
         }
         _nbSamplesMaxDiff = (_distanceBetweenMicrophones/_soundSpeed)*_soundSamplingRate+1;
@@ -335,7 +335,7 @@ private:
 
             if ( std::isnan(degree) == false ) {
                 cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Audio Level ---> " << relativeLevel << endl;
-                rs->send_ssloc(degree, _default_elevation, relativeLevel);
+                rs->send_ssloc(degree, _defaultElevationLevel, relativeLevel);
             }
         }
     }
@@ -367,7 +367,7 @@ int main(int argc, char *argv[]) {
 
     if (argc < 5) {
         cout << "You need to provide the following arguments: DEVICENAME OUTTOPIC MIC_DISTANCE AUDIO_ACTIVATION_LEVEL [DEFAULT_ELEVATION optional]";
-        cout << "Example: plughw:0.0 /robotgazetools/audio 0.5 2.5 [0.0]"
+        cout << "Example: plughw:0.0 /robotgazetools/audio 0.5 2.5 [0.0]";
     }
 
     SoundSourceLoc soundLoc(argc, argv);
