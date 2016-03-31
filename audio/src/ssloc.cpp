@@ -17,6 +17,9 @@
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/PointStamped.h"
 
+#include <rsb/Informer.h>
+#include <rsb/Factory.h>
+
 // STD
 #include <iostream>
 #include <stdio.h>
@@ -165,12 +168,20 @@ class SoundSourceLoc {
     // ROS STUFF
     ROSComm* rs;
 
+    Factory& factory;
+    
+    Informer<double>::Ptr informer;
+
+
 public:
     SoundSourceLoc(int argc, char* argv[]) {
 
         ros::init(argc, (char **) argv, "robotgazetoolsaudio");
         rs = new ROSComm();
         rs->init_ros(argc, argv);
+        factory = getFactory();
+        informer = factory.createInformer<double> ("/speechrec/sslog");
+
 
         _averageSoundLevel = new RunningAverage(50);
         _soundSamplingRate = 44100;
@@ -336,6 +347,8 @@ private:
             if ( std::isnan(degree) == false ) {
                 cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Audio Level ---> " << relativeLevel << endl;
                 rs->send_ssloc(degree, _defaultElevationLevel, relativeLevel);
+                Informer<double>::DataPtr d(new double(degree));
+                informer->publish(d);
             }
         }
     }
@@ -366,7 +379,7 @@ private:
 int main(int argc, char *argv[]) {
 
     if (argc < 5) {
-        cout << "You need to provide the following arguments: DEVICENAME OUTTOPIC MIC_DISTANCE AUDIO_ACTIVATION_LEVEL [DEFAULT_ELEVATION optional]";
+        cout << "You need to provide the following arguments: ä9 OUTTOPIC MIC_DISTANCE AUDIO_ACTIVATION_LEVEL [DEFAULT_ELEVATION optional]";
         cout << "Example: plughw:0.0 /robotgazetools/audio 0.5 2.5 [0.0]";
     }
 
