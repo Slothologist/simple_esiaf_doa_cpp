@@ -170,7 +170,7 @@ class SoundSourceLoc {
     ROSComm* rs;
 
         
-    Informer<double>::Ptr informer;
+    Informer<Double>::Ptr informer;
 
 
 public:
@@ -180,7 +180,7 @@ public:
         rs = new ROSComm();
         rs->init_ros(argc, argv);
         Factory& factory = getFactory();
-        informer = factory.createInformer<double> ("/speechrec/sslog");
+        informer = factory.createInformer<Double> ("/speechrec/sslog");
 
 
         _averageSoundLevel = new RunningAverage(50);
@@ -347,7 +347,7 @@ private:
             if ( std::isnan(degree) == false ) {
                 cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Audio Level ---> " << relativeLevel << endl;
                 rs->send_ssloc(degree, _defaultElevationLevel, relativeLevel);
-                Informer<double>::DataPtr d(new double(degree));
+                Informer<Double>::DataPtr d(new Double(degree));
                 informer->publish(d);
             }
         }
