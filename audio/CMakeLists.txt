@@ -9,6 +9,7 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS system program_options)
 FIND_PACKAGE(ALSA REQUIRED)
 FIND_PACKAGE(RSB REQUIRED)
 FIND_PACKAGE(RST REQUIRED)
+FIND_PACKAGE(RSC REQUIRED
 PKG_CHECK_MODULES(YAMLCPP REQUIRED yaml-cpp>=0.5)
 
 SET(ROS_BUILD_TYPE Release)
@@ -70,8 +71,8 @@ catkin_package(
 ###########
 
 include_directories(BEFORE include ${Boost_INCLUDE_DIRS})
-include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${ALSA_INCLUDE_DIRS} ${RST_INCLUDE_DIRS} ${RSB_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${ALSA_LIBRARY_DIRS} ${RST_LIBRARY_DIRS} ${RSB_LIBRARY_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${YAMLCPP_INCLUDE_DIRS} ${ALSA_INCLUDE_DIRS} ${RST_INCLUDE_DIRS} ${RSC_INCLUDE_DIRS} ${RSB_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS} ${YAMLCPP_LIBRARY_DIRS} ${ALSA_LIBRARY_DIRS} ${RST_LIBRARY_DIRS} ${RSC_LIBRARY_DIRS} ${RSB_LIBRARY_DIRS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
@@ -86,6 +87,7 @@ add_executable(simple_robot_gaze_tools_ssloc
 target_link_libraries(simple_robot_gaze_tools_ssloc
         ${RSB_LIBRARIES}
         ${RST_LIBRARIES}
+        ${RSC_LIBRARIES}
         ${Boost_LIBRARIES}
         ${catkin_LIBRARIES}
         ${YAMLCPP_LIBRARIES}
