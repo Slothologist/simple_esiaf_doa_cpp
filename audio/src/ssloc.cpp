@@ -34,6 +34,7 @@
 #define SAMPLE_TYPE_ALSA SND_PCM_FORMAT_S16_LE
 
 using namespace std;
+using namespace rsb;
 
 /* ROS Class to send Messages */
 
