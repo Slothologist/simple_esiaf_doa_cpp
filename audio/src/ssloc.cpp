@@ -169,8 +169,7 @@ class SoundSourceLoc {
     // ROS STUFF
     ROSComm* rs;
 
-    Factory& factory;
-    
+        
     Informer<double>::Ptr informer;
 
 
@@ -180,7 +179,7 @@ public:
         ros::init(argc, (char **) argv, "robotgazetoolsaudio");
         rs = new ROSComm();
         rs->init_ros(argc, argv);
-        factory = getFactory();
+        Factory& factory = getFactory();
         informer = factory.createInformer<double> ("/speechrec/sslog");
 
 
