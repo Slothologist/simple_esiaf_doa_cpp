@@ -19,6 +19,8 @@
 
 #include <rsb/Informer.h>
 #include <rsb/Factory.h>
+#include <rsb/converter/Repository.h>
+#include <rsb/converter/ProtocolBufferConverter.h>
 
 // STD
 #include <iostream>
@@ -28,6 +30,7 @@
 #include <cmath>
 #include <limits.h>
 #include <alsa/asoundlib.h>
+#include <string>
 
 // DEFINES
 #define SAMPLE_TYPE short
@@ -170,7 +173,7 @@ class SoundSourceLoc {
     ROSComm* rs;
 
         
-    Informer<Double>::Ptr informer;
+    Informer<string>::Ptr informer;
 
 
 public:
@@ -180,7 +183,7 @@ public:
         rs = new ROSComm();
         rs->init_ros(argc, argv);
         Factory& factory = getFactory();
-        informer = factory.createInformer<Double> ("/speechrec/sslog");
+        informer = factory.createInformer<string> ("/speechrec/sslog");
 
 
         _averageSoundLevel = new RunningAverage(50);
@@ -347,7 +350,7 @@ private:
             if ( std::isnan(degree) == false ) {
                 cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Audio Level ---> " << relativeLevel << endl;
                 rs->send_ssloc(degree, _defaultElevationLevel, relativeLevel);
-                Informer<Double>::DataPtr d(new Double(degree));
+                Informer<string>::DataPtr d(new string(std::to_string(degree)));
                 informer->publish(d);
             }
         }
