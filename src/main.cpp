@@ -379,6 +379,8 @@ int main(int argc, char *const argv[]) {
 
     if (is_ros) {
 
+        cout << ">>> Initializing ROS Grabber " << s << "\n";
+
         // ROS Grabber
         Grabber_ROS grabber(timing_flag, width, height, ros_input_scope);
 
@@ -401,6 +403,8 @@ int main(int argc, char *const argv[]) {
     }
 
     if (is_rsb) {
+
+        cout << ">>> Initializing RSB Grabber " << s << "\n";
 
         // RSB Grabber
         Grabber_RSB grabber(timing_flag, width, height, rsb_input_scope, rsb_host, rsb_port, is_spread);
@@ -425,6 +429,8 @@ int main(int argc, char *const argv[]) {
     }
 
     if (is_native) {
+
+        cout << ">>> Initializing Native Grabber " << s << "\n";
 
         // STD Device Grabber
         Grabber grabber;
