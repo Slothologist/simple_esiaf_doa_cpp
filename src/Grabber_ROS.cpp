@@ -18,7 +18,7 @@ Grabber_ROS::Grabber_ROS(bool timing_flag, int i_width, int i_height, std::strin
     timing = timing_flag;
     width = i_width;
     height = i_height;
-    image_sub_ = it_.subscribe(scope, 1, &Grabber_ROS::imageCallback, this);
+    image_sub_ = it_.subscribe(scope, 5, &Grabber_ROS::imageCallback, this);
 }
 
 Grabber_ROS::~Grabber_ROS() { }

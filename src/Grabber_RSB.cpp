@@ -53,7 +53,7 @@ Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _sco
     height = _height;
     host = _host;
     port = _port;
-    imageQueue = ImageQueuePtr(new ImageQueue(1));
+    imageQueue = ImageQueuePtr(new ImageQueue(5));
     imageHandler = ImageHandlerPtr(new ImageHandler(imageQueue));
 
     rsb::Factory &factory = rsb::getFactory();
