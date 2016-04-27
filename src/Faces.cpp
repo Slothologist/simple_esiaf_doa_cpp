@@ -92,7 +92,7 @@ void Faces::setPathRSB(Grabber_RSB *grab, string path, bool _vis, bool _fit) {
     viz = _vis;
     fit = _fit;
     is_ximea = false;
-    is_ros = true;
+    is_ros = false;
     is_native = false;
     is_rsb = true;
     detector = dlib::get_frontal_face_detector();
