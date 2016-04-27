@@ -251,7 +251,7 @@ int main(int argc, char *const argv[]) {
             is_native = false;
             is_ros = true;
             is_rsb = false;
-            cout << ">>> ROS source is:" << s << "\n";
+            cout << ">>> ROS source is: " << s << "\n";
         } else {
             cout << ">>> ROS source: OFF" << "\n";
             is_ros = false;
@@ -260,9 +260,9 @@ int main(int argc, char *const argv[]) {
         if (vm.count("rostopic")) {
             const string &s = vm["rostopic"].as<string>();
             ros_topic = s;
-            cout << ">>> ROStopic is:" << s << "\n";
+            cout << ">>> ROStopic is: " << s << "\n";
         } else {
-            cout << ">>> ROStopic is:" << ros_topic <<"\n";
+            cout << ">>> ROStopic is: " << ros_topic <<"\n";
         }
 
         if (vm.count("width")) {
@@ -315,7 +315,7 @@ int main(int argc, char *const argv[]) {
             rsb_host = s;
             cout << ">>> RSB host is: " << s << "\n";
         } else {
-            cout << ">>> RSB using Spread " << rsb_host << "\n";
+            cout << ">>> RSB using Spread " << "\n";
             is_spread = true;
         }
 
@@ -324,7 +324,7 @@ int main(int argc, char *const argv[]) {
             rsb_port = s;
             cout << ">>> RSB port is: " << s << "\n";
         } else {
-            cout << ">>> RSB using Spread " << rsb_host << "\n";
+            cout << ">>> RSB using Spread " <<  "\n";
             is_spread = true;
         }
 
@@ -402,7 +402,7 @@ int main(int argc, char *const argv[]) {
 
     if (is_rsb) {
 
-        // ROS Grabber
+        // RSB Grabber
         Grabber_RSB grabber(timing_flag, width, height, rsb_input_scope, rsb_host, rsb_port, is_spread);
 
         // DLIB
