@@ -379,6 +379,8 @@ int main(int argc, char *const argv[]) {
 
     if (is_ros) {
 
+        cout << ">>> GRABBER RUNNING in ROS MODE" << "\n";
+
         // ROS Grabber
         Grabber_ROS grabber(timing_flag, width, height, ros_input_scope);
 
@@ -396,11 +398,12 @@ int main(int argc, char *const argv[]) {
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
-        cout << ">>> GRABBER RUNNING in ROS MODE" << "\n";
         ros::spin();
     }
 
     if (is_rsb) {
+
+        cout << ">>> GRABBER RUNNING in RSB MODE" << "\n";
 
         // RSB Grabber
         Grabber_RSB grabber(timing_flag, width, height, rsb_input_scope, rsb_host, rsb_port, is_spread);
@@ -420,11 +423,12 @@ int main(int argc, char *const argv[]) {
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
-        cout << ">>> GRABBER RUNNING in RSB MODE" << "\n";
         ros::spin();
     }
 
     if (is_native) {
+
+        cout << ">>> GRABBER RUNNING in NATIVE MODE" << "\n";
 
         // STD Device Grabber
         Grabber grabber;
@@ -445,7 +449,6 @@ int main(int argc, char *const argv[]) {
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
-        cout << ">>> GRABBER RUNNING in NATIVE MODE" << "\n";
         ros::spin();
     }
 
