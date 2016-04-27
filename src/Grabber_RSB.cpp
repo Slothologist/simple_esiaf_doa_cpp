@@ -46,7 +46,7 @@ using namespace rst::math;
 using namespace rst::geometry;
 
 
-Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _scope, std::string _host, std::string _port) {
+Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _scope, std::string _host, std::string _port, bool _is_spread) {
 
     timing = _timing;
     width = _width;
@@ -70,18 +70,23 @@ Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _sco
     set<rsb::ParticipantConfig::Transport> enabledTransports = listenerConfig.getTransports();
 
     for (set<rsb::ParticipantConfig::Transport>::const_iterator transportIt =
-            enabledTransports.begin(); transportIt != enabledTransports.end();
-            ++transportIt) {
+         enabledTransports.begin(); transportIt != enabledTransports.end();
+         ++transportIt) {
         listenerConfig.mutableTransport(transportIt->getName()).setEnabled(false);
     }
 
-    listenerConfig.mutableTransport("socket").setEnabled(true);
-    listenerConfig.mutableTransport("socket").mutableOptions().set<string>("host", host);
-    listenerConfig.mutableTransport("socket").mutableOptions().set<string>("port", port);
-    listenerConfig.mutableTransport("socket").mutableOptions().set<string>("server", "0");
+    if(!_is_spread) {
+        listenerConfig.mutableTransport("socket").setEnabled(true);
+        listenerConfig.mutableTransport("socket").mutableOptions().set<string>("host", host);
+        listenerConfig.mutableTransport("socket").mutableOptions().set<string>("port", port);
+        listenerConfig.mutableTransport("socket").mutableOptions().set<string>("server", "0");
 
-    imageListener = factory.createListener(rsb::Scope(_scope), listenerConfig);
-    imageListener->addHandler(imageHandler);
+        imageListener = factory.createListener(rsb::Scope(_scope), listenerConfig);
+        imageListener->addHandler(imageHandler);
+    } else {
+        imageListener = factory.createListener(rsb::Scope(_scope));
+        imageListener->addHandler(imageHandler);
+    }
 }
 
 Grabber_RSB::~Grabber_RSB() {}

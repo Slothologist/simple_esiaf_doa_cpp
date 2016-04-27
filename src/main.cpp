@@ -46,6 +46,7 @@ int main(int argc, char *const argv[]) {
     bool is_native = true;
     bool is_ros = false;
     bool is_rsb = false;
+    bool is_spread = false;
     int rate = 30;
     int width = 320;
     int height = 240;
@@ -314,7 +315,8 @@ int main(int argc, char *const argv[]) {
             rsb_host = s;
             cout << ">>> RSB host is: " << s << "\n";
         } else {
-            cout << ">>> RSB host is: " << rsb_host << "\n";
+            cout << ">>> RSB using Spread " << rsb_host << "\n";
+            is_spread = true;
         }
 
         if (vm.count("rsbport")) {
@@ -322,7 +324,8 @@ int main(int argc, char *const argv[]) {
             rsb_port = s;
             cout << ">>> RSB port is: " << s << "\n";
         } else {
-            cout << ">>> RSB port is: " << rsb_port << "\n";
+            cout << ">>> RSB using Spread " << rsb_host << "\n";
+            is_spread = true;
         }
 
         /*
@@ -400,7 +403,7 @@ int main(int argc, char *const argv[]) {
     if (is_rsb) {
 
         // ROS Grabber
-        Grabber_RSB grabber(timing_flag, width, height, rsb_input_scope, rsb_host, rsb_port);
+        Grabber_RSB grabber(timing_flag, width, height, rsb_input_scope, rsb_host, rsb_port, is_spread);
 
         // DLIB
         Faces fac(ros_topic);

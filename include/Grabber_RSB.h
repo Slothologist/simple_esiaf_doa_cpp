@@ -32,7 +32,7 @@
 class Grabber_RSB {
 
 public:
-    Grabber_RSB(bool timing, int width, int height, std::string scope, std::string host, std::string port);
+    Grabber_RSB(bool timing, int width, int height, std::string scope, std::string host, std::string port, bool _is_spread);
     ~Grabber_RSB();
     void getImage(ros::Time *target_timestamp, cv::Mat *image);
     bool timing;
