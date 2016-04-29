@@ -92,11 +92,10 @@ Grabber_RSB::Grabber_RSB(bool _timing, int _width, int _height, std::string _sco
 Grabber_RSB::~Grabber_RSB() {}
 
 void Grabber_RSB::getImage(ros::Time *target_timestamp, cv::Mat *image) {
+    ros::Time now = ros::Time::now();
     rsb::EventPtr imageEvent = imageQueue->pop();
     mtx.lock();
     if (imageEvent->getType() == rsc::runtime::typeName<IplImage>()) {
-        // TODO: Implement createTime to ROS::TIME
-        ros::Time now = ros::Time::now();
         *target_timestamp = now;
         boost::shared_ptr<IplImage> newImage = boost::static_pointer_cast<IplImage>(imageEvent->getData());
         imageMetaData = imageEvent->getMetaData();
