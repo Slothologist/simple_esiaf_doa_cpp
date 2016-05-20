@@ -17,7 +17,6 @@ public:
     void getSaliency(bool saliency_flag, bool timing, int throttle);
     void setup(Grabber *grab, int camera, bool _vis, double _sal_sens);
     void setupROS(Grabber_ROS *grab, int camera, bool _vis, double _sal_sens);
-    void setupRSB(Grabber_RSB *grab, int camera, bool _vis, double _sal_sens);
     // void setupXimea(Grabber_XIMEA *grab, int camera, bool _vis);
 protected:
     // NMPT
@@ -30,11 +29,9 @@ protected:
     ros::Publisher pub_s;
 
     // SELF
-    bool vizu, is_ximea, is_ros, is_native, is_rsb;
+    bool vizu, is_ximea, is_ros, is_native;
     Grabber *grabber;
     Grabber_ROS *grabber_ros;
-    Grabber_RSB *grabber_rsb;
-    // Grabber_XIMEA *grabber_x;
 
     /**
      * @param numtemporal Number of timescales of Difference of Expontential filters to track.

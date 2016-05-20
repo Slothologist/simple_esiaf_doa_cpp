@@ -21,7 +21,6 @@
 #include "Grabber.h"
 #include "Saliency.h"
 #include "Grabber_ROS.h"
-#include "Grabber_RSB.h"
 // #include "Grabber_XIMEA.h"
 
 
@@ -34,10 +33,7 @@ int main(int argc, char *const argv[]) {
     // Global config
     string dlib_path = "None";
     string ros_input_scope = "/usb_cam/image_raw";
-    string rsb_input_scope = "/usb_cam/image_raw";
     string ros_topic = "robotgazetools";
-    string rsb_port = "5556";
-    string rsb_host = "localhost";
     bool faces_flag = false;
     bool viz_flag = false;
     bool saliency_flag = false;
@@ -45,7 +41,6 @@ int main(int argc, char *const argv[]) {
     bool timing_flag = false;
     bool is_native = true;
     bool is_ros = false;
-    bool is_rsb = false;
     bool is_spread = false;
     int rate = 30;
     int width = 320;
@@ -101,10 +96,6 @@ int main(int argc, char *const argv[]) {
         rossource.add_options()
                 ("rossource", value<string>(), "rossource=$topic");
 
-        options_description rsbsource("rsbsource options");
-        rsbsource.add_options()
-                ("rsbsource", value<string>(), "rsbsource=$topic");
-
         options_description rostopic("rostopic options");
         rostopic.add_options()
                 ("rostopic", value<string>(), "rostopic=$topic");
@@ -117,14 +108,6 @@ int main(int argc, char *const argv[]) {
         iheight.add_options()
                 ("height", value<int>(), "height=NUMBER (default is 320 pixel)");
 
-        options_description rsbport("rsbport options");
-        rsbport.add_options()
-                ("rsbport", value<string>(), "rsbport=$topic");
-
-        options_description rsbhost("rsbhost options");
-        rsbhost.add_options()
-                ("rsbhost", value<string>(), "rsbhost=$topic");
-
         options_description salsens("saliency sensitivity options");
         salsens.add_options()
                 ("salsens", value<double>(), "salsens=NUMBER (default is 1.0)");
@@ -134,18 +117,18 @@ int main(int argc, char *const argv[]) {
                 .add(faces).add(viz).add(fit)
                 .add(timing).add(framerate)
                 .add(rossource).add(rostopic)
-                .add(rsbsource).add(iwidth)
-                .add(iheight).add(rsbhost)
-                .add(rsbport).add(throttle).add(salsens);
+                .add(iwidth)
+                .add(iheight)
+                .add(throttle).add(salsens);
 
         options_description visible("Allowed options");
         visible.add(general).add(dlib).add(saliency)
                 .add(faces).add(viz).add(fit)
                 .add(timing).add(framerate)
                 .add(rossource).add(rostopic)
-                .add(rsbsource).add(iwidth)
-                .add(iheight).add(rsbhost)
-                .add(rsbport).add(throttle).add(salsens);
+                .add(iwidth)
+                .add(iheight)
+                .add(throttle).add(salsens);
 
         variables_map vm;
 
@@ -250,7 +233,6 @@ int main(int argc, char *const argv[]) {
             // ximea_flag = false;
             is_native = false;
             is_ros = true;
-            is_rsb = false;
             cout << ">>> ROS source is: " << s << "\n";
         } else {
             cout << ">>> ROS source: OFF" << "\n";
@@ -295,37 +277,6 @@ int main(int argc, char *const argv[]) {
             cout << ">>> Throttle is: " << throttle_hard << "\n";
         } else {
             cout << ">>> Throttle is: " << throttle_hard << "\n";
-        }
-
-        if (vm.count("rsbsource")) {
-            const string &s = vm["rsbsource"].as<string>();
-            rsb_input_scope = s;
-            // ximea_flag = false;
-            is_native = false;
-            is_ros = false;
-            is_rsb = true;
-            cout << ">>> RSB source is: " << s << "\n";
-        } else {
-            cout << ">>> RSB source: OFF" << "\n";
-            is_rsb = false;
-        }
-
-        if (vm.count("rsbhost")) {
-            const string &s = vm["rsbhost"].as<string>();
-            rsb_host = s;
-            cout << ">>> RSB host is: " << s << "\n";
-        } else {
-            cout << ">>> RSB using Spread " << "\n";
-            is_spread = true;
-        }
-
-        if (vm.count("rsbport")) {
-            const string &s = vm["rsbport"].as<string>();
-            rsb_port = s;
-            cout << ">>> RSB port is: " << s << "\n";
-        } else {
-            cout << ">>> RSB using Spread " <<  "\n";
-            is_spread = true;
         }
 
         /*
@@ -395,31 +346,6 @@ int main(int argc, char *const argv[]) {
         Saliency sal(ros_topic);
         if (saliency_flag) {
             sal.setupROS(&grabber, grabber.getCamera(), viz_flag, sal_s);
-        }
-        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
-
-        ros::spin();
-    }
-
-    if (is_rsb) {
-
-        cout << ">>> GRABBER RUNNING in RSB MODE" << "\n";
-
-        // RSB Grabber
-        Grabber_RSB grabber(timing_flag, width, height, rsb_input_scope, rsb_host, rsb_port, is_spread);
-
-        // DLIB
-        Faces fac(ros_topic);
-        if (faces_flag) {
-            fac.setPathRSB(&grabber, dlib_path, viz_flag, fit_flag);
-        }
-        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
-
-        // NMPT
-        Saliency sal(ros_topic);
-        if (saliency_flag) {
-            unsigned int c = 1;
-            sal.setupRSB(&grabber, c, viz_flag, sal_s);
         }
         thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 

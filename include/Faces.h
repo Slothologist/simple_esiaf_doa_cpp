@@ -8,7 +8,6 @@
 // SELF
 #include "Grabber.h"
 #include "Grabber_ROS.h"
-#include "Grabber_RSB.h"
 
 // DLIB
 #include <dlib/image_processing/frontal_face_detector.h>
@@ -23,7 +22,6 @@ public:
     // void setPathXimea(Grabber_XIMEA *grab, std::string path, bool _vis, bool _fit);
     void setPath(Grabber *grab, std::string path, bool _vis, bool _fit);
     void setPathROS(Grabber_ROS *grab, std::string path, bool _vis, bool _fit);
-    void setPathRSB(Grabber_RSB *grab, std::string path, bool _vis, bool _fit);
 protected:
 
     // DLIB
@@ -38,8 +36,7 @@ protected:
     // SELF
     Grabber *grabber;
     Grabber_ROS *grabber_ros;
-    Grabber_RSB *grabber_rsb;
     // Grabber_XIMEA *grabber_x;
 
-    bool viz, fit, is_ximea, is_ros, is_native, is_rsb;
+    bool viz, fit, is_ximea, is_ros, is_native;
 };
