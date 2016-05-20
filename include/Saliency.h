@@ -3,7 +3,6 @@
 // SELF
 #include "Grabber.h"
 #include "Grabber_ROS.h"
-#include "Grabber_RSB.h"
 
 // NMPT
 #include <nmpt/BlockTimer.h>
