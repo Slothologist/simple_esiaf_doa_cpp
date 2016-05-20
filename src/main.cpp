@@ -117,8 +117,7 @@ int main(int argc, char *const argv[]) {
                 .add(faces).add(viz).add(fit)
                 .add(timing).add(framerate)
                 .add(rossource).add(rostopic)
-                .add(iwidth)
-                .add(iheight)
+                .add(iwidth).add(iheight)
                 .add(throttle).add(salsens);
 
         options_description visible("Allowed options");
@@ -126,8 +125,7 @@ int main(int argc, char *const argv[]) {
                 .add(faces).add(viz).add(fit)
                 .add(timing).add(framerate)
                 .add(rossource).add(rostopic)
-                .add(iwidth)
-                .add(iheight)
+                .add(iwidth).add(iheight)
                 .add(throttle).add(salsens);
 
         variables_map vm;
@@ -279,54 +277,10 @@ int main(int argc, char *const argv[]) {
             cout << ">>> Throttle is: " << throttle_hard << "\n";
         }
 
-        /*
-        if (vm.count("ximea")) {
-            const string &s = vm["ximea"].as<string>();
-            if (s == "ON") {
-                cout << ">>> Using XIMEA: " << s << "\n";
-                ximea_flag = true;
-                is_native = false;
-                is_ros = false;
-            } else {
-                cout << ">>> Using XIMEA: " << s << "\n";
-                ximea_flag = false;
-            }
-        } else {
-            cout << ">>> Using XIMEA: OFF" << "\n";
-            ximea_flag = false;
-        }
-        */
-
     } catch (std::exception &e) { cout << e.what() << "\n"; }
 
     // ROS
     ros::init(argc, (char **) argv, "robotgazetools");
-
-    /*
-    if (ximea_flag) {
-
-        // XIMEA Grabber
-        Grabber_XIMEA grabber;
-        grabber.setCapture(argc, (const char **) argv, rate, timing_flag, width, height);
-        thread g_t(&Grabber_XIMEA::grabImage, &grabber);
-
-        // DLIB
-        Faces fac;
-        if (faces_flag) {
-            fac.setPathXimea(&grabber, dlib_path, viz_flag, fit_flag);
-        }
-        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag);
-
-        // NMPT
-        Saliency sal;
-        if (saliency_flag) {
-            sal.setupXimea(&grabber, grabber.getCamera(), viz_flag);
-        }
-        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag);
-        cout << ">>> GRABBER RUNNING in XIMEA MODE" << "\n";
-        rosSpin();
-    }
-    */
 
     if (is_ros) {
 
