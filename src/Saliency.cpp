@@ -96,11 +96,6 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
         cv::Mat im_source;
         cv::Mat im;
 
-        // Always resize Saliency to !! 320x240 !! in order to
-        // reduce computation time. This resolution is enough
-        // to compute salient points (from my experience)
-        cv::Size size(320,240);
-
         if (is_native) {
             grabber->getImage(&frame_timestamp, &im_source);
             // If no image has been grabbed yet...wait.
@@ -109,11 +104,11 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
                 usleep(1000);
                 continue;
             }
-            if (im_source.rows != 320) {
-                cv::resize(im_source, im, size);
-            } else {
-                im = im_source;
-            }
+
+            // Resize for Saliency to 1/2
+            cv::Size size(im_source.rows/2,im_source.cols/2);
+            cv::resize(im_source, im, size);
+
         }
 
         if (is_ros) {
@@ -124,11 +119,10 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
                 usleep(1000);
                 continue;
             }
-            if (im_source.rows != 320) {
-                cv::resize(im_source, im, size);
-            } else {
-                im = im_source;
-            }
+
+            // Resize for Saliency to 1/2
+            cv::Size size(im_source.rows/2,im_source.cols/2);
+            cv::resize(im_source, im, size);
         }
 
         if (is_rsb) {
@@ -139,11 +133,10 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
                 usleep(1000);
                 continue;
             }
-            if (im_source.rows != 320) {
-                cv::resize(im_source, im, size);
-            } else {
-                im = im_source;
-            }
+
+            // Resize for Saliency to 1/2
+            cv::Size size(im_source.rows/2,im_source.cols/2);
+            cv::resize(im_source, im, size);
         }
 
         std_msgs::Header h;
