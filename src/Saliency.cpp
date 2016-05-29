@@ -91,7 +91,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
             }
 
             // Resize for Saliency to 1/2
-            cv::Size size(im_source.rows/2,im_source.cols/2);
+            cv::Size size(im_source.cols/2,im_source.rows/2);
             cv::resize(im_source, im, size);
         }
 
@@ -105,7 +105,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
             }
 
             // Resize for Saliency to 1/2
-            cv::Size size(im_source.rows/2,im_source.cols/2);
+            cv::Size size(im_source.cols/2,im_source.rows/2);
             cv::resize(im_source, im, size);
         }
 
