@@ -220,9 +220,9 @@ int main(int argc, char *const argv[]) {
         if (vm.count("framerate")) {
             int f = vm["framerate"].as<int>();
             rate = f;
-            cout << ">>> Framerate is: " << rate << "\n";
+            // cout << ">>> Framerate is: " << rate << "\n";
         } else {
-            cout << ">>> Framerate is: " << rate << "\n";
+            // cout << ">>> Framerate is: " << rate << "\n";
         }
 
         if (vm.count("rossource")) {
@@ -312,6 +312,7 @@ int main(int argc, char *const argv[]) {
 
         // STD Device Grabber
         Grabber grabber;
+        cout << ">>> Framerate is: " << rate << "\n";
         grabber.setCapture(argc, (const char **) argv, rate, timing_flag, width, height);
         thread g_t(&Grabber::grabImage, &grabber);
 
