@@ -85,7 +85,7 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
             grabber->getImage(&frame_timestamp, &im_source);
             // If no image has been grabbed yet...wait.
             if (im_source.rows == 0) {
-                cout << "[Saliency] waiting for next image to be grabbed..." << endl;
+                // cout << "[Saliency] waiting for next image to be grabbed..." << endl;
                 usleep(1000);
                 continue;
             }

@@ -118,7 +118,7 @@ void Faces::getFaces(bool faces_flag, bool timing, int throttle) {
 
         // If no image has been grabbed yet...wait.
         if (im.rows == 0 || im.cols == 0) {
-            cout << "[Faces] waiting for next image to be grabbed..." << endl;
+            // cout << "[Faces] waiting for next image to be grabbed..." << endl;
             usleep(1000);
             continue;
         }
