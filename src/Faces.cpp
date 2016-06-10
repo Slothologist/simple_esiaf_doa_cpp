@@ -8,6 +8,7 @@
 
 // BOOST
 #include "boost/date_time/posix_time/posix_time.hpp"
+//#include <boost/program_options.hpp>
 
 // DLIB
 #include <dlib/gui_widgets.h>
@@ -16,11 +17,12 @@
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/render_face_detections.h>
 
-
 using namespace std;
 
 Faces::Faces(std::string topic) {
-    this->pub_f = n.advertise<people_msgs::People>(topic+"/faces", 10);
+    ros::SubscriberStatusCallback connect_cb = boost::bind(&Faces::connectCb, this);
+    boost::lock_guard<boost::mutex> lock(connect_cb_mutex_f_);
+    this->pub_f = n.advertise<people_msgs::People>(topic+"/faces", 10, connect_cb, connect_cb);
 }
 
 Faces::~Faces() { }
@@ -189,3 +191,18 @@ void Faces::getFaces(bool faces_flag, bool timing, int throttle) {
         }
     }
 }
+
+void Faces::connectCb() {
+  boost::lock_guard<boost::mutex> lock(connect_cb_mutex_f_);
+  ROS_INFO_STREAM("pub_f has " << pub_f.getNumSubscribers() << " susbcribers");
+  has_subscribers = (pub_f.getNumSubscribers() != 0);
+  if (!has_subscribers) {
+    ROS_INFO_STREAM("unsubscribing image input topic");
+    grabber_ros->stop();
+  } else {
+    // subscribe input
+    ROS_INFO_STREAM("(re)subscribing image input topic");
+    grabber_ros->start();
+  }
+}
+

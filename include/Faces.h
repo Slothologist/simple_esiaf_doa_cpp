@@ -19,9 +19,11 @@ public:
     Faces(std::string topic);
     ~Faces();
     void getFaces(bool faces_flag, bool timing, int throttle);
-    // void setPathXimea(Grabber_XIMEA *grab, std::string path, bool _vis, bool _fit);
     void setPath(Grabber *grab, std::string path, bool _vis, bool _fit);
     void setPathROS(Grabber_ROS *grab, std::string path, bool _vis, bool _fit);
+
+    boost::mutex connect_cb_mutex_;
+
 protected:
 
     // DLIB
@@ -36,7 +38,14 @@ protected:
     // SELF
     Grabber *grabber;
     Grabber_ROS *grabber_ros;
-    // Grabber_XIMEA *grabber_x;
-
+    
     bool viz, fit, is_ximea, is_ros, is_native;
+
+private:
+    // Subscriber handling
+    bool has_subscribers;
+    ros::NodeHandle *nh;
+    void connectCb();
+    boost::mutex connect_cb_mutex_f_;
+
 };

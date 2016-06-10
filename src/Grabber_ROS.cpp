@@ -12,12 +12,12 @@
 // BOOST
 #include "boost/date_time/posix_time/posix_time.hpp"
 
-
 Grabber_ROS::Grabber_ROS(bool timing_flag, int i_width, int i_height, std::string scope) : it_(node_handle_) {
     usingCamera = 1;
     timing = timing_flag;
     width = i_width;
     height = i_height;
+    scope_ = scope;
     image_sub_ = it_.subscribe(scope, 5, &Grabber_ROS::imageCallback, this);
 }
 
@@ -71,4 +71,12 @@ void Grabber_ROS::getImage(ros::Time *target_timestamp, cv::Mat *mat) {
         *target_timestamp = timestamp;
     }
     mtx.unlock();
+}
+
+void Grabber_ROS::start() {
+  image_sub_ = it_.subscribe(scope_, 5, &Grabber_ROS::imageCallback, this);
+}
+
+void Grabber_ROS::stop() {
+  image_sub_.shutdown();
 }

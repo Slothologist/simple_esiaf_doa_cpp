@@ -9,6 +9,7 @@
 
 // BOOST
 #include "boost/date_time/posix_time/posix_time.hpp"
+//#include <boost/program_options.hpp>
 
 //NMPT
 #include <nmpt/LQRPointTracker.h>
@@ -17,7 +18,10 @@ using namespace std;
 using namespace cv;
 
 Saliency::Saliency(std::string topic) {
-    pub_s = n.advertise<geometry_msgs::PointStamped>(topic+"/saliency", 10);
+    ros::SubscriberStatusCallback connect_cb = boost::bind(&Saliency::connectCb, this);
+
+    boost::lock_guard<boost::mutex> lock(connect_cb_mutex_);
+    pub_s = n.advertise<geometry_msgs::PointStamped>(topic+"/saliency", 10, connect_cb, connect_cb);
 }
 
 Saliency::~Saliency() {}
@@ -49,6 +53,7 @@ void Saliency::setupROS(Grabber_ROS *grab, int camera, bool _vis, double _sal_se
     is_ros = true;
 }
 
+
 void Saliency::setup(Grabber *grab, int camera, bool _vis, double _sal_sens) {
     grabber = grab;
     usingCamera = camera;
@@ -61,6 +66,7 @@ void Saliency::setup(Grabber *grab, int camera, bool _vis, double _sal_sens) {
     is_native = true;
     is_ros = false;
 }
+
 
 void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
 
@@ -200,4 +206,18 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
             cout << "[SALIENCY] Time Consumption: " << cdiff.total_milliseconds() << " ms" << std::endl;
         }
     }
+}
+
+void Saliency::connectCb() {
+  boost::lock_guard<boost::mutex> lock(connect_cb_mutex_);
+  ROS_INFO_STREAM("pub_f has " << pub_s.getNumSubscribers() << " susbcribers");
+  has_subscribers = (pub_s.getNumSubscribers() != 0);
+  if (!has_subscribers) {
+    ROS_INFO_STREAM("unsubscribing image input topic");
+    grabber_ros->stop();
+  } else {
+    // subscribe input
+    ROS_INFO_STREAM("(re)subscribing image input topic");
+    grabber_ros->start();
+  }
 }

@@ -1,4 +1,4 @@
-#pragma once
+#pragma once 
 
 // ROS
 #include <ros/ros.h>
@@ -10,11 +10,14 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <mutex>
+//#include <mutex>
 
 // CV
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
+//#include <boost/thread.hpp>
+#include "Grabber.h"
 
 class Grabber_ROS {
 
@@ -25,14 +28,21 @@ public:
     void getImage(ros::Time *timestamp, cv::Mat *mat);
     int  getCamera();
     bool timing;
+
+    
+
+    // Subscriber handling
+    std::string scope_;
+    void start();
+    void stop();
+
 private:
     ros::NodeHandle node_handle_;
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;
-    std::recursive_mutex mtx;
+    boost::recursive_mutex mtx;
     cv::Mat output_frame;
     cv::Mat source_frame;
     ros::Time timestamp;
     int usingCamera, width, height;
 };
-

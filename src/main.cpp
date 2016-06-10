@@ -11,16 +11,17 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/thread.hpp>
 
 // THREADING
-#include <thread>
-#include <mutex>
+//#include <thread>
+//#include <mutex>
 
 // SELF
 #include "Faces.h"
-#include "Grabber.h"
+//#include "Grabber.h"
 #include "Saliency.h"
-#include "Grabber_ROS.h"
+//#include "Grabber_ROS.h"
 // #include "Grabber_XIMEA.h"
 
 
@@ -287,21 +288,23 @@ int main(int argc, char *const argv[]) {
         cout << ">>> GRABBER RUNNING in ROS MODE" << "\n";
 
         // ROS Grabber
-        Grabber_ROS grabber(timing_flag, width, height, ros_input_scope);
+        Grabber_ROS grabberFaces(timing_flag, width, height, ros_input_scope);
 
         // DLIB
         Faces fac(ros_topic);
         if (faces_flag) {
-            fac.setPathROS(&grabber, dlib_path, viz_flag, fit_flag);
+            fac.setPathROS(&grabberFaces, dlib_path, viz_flag, fit_flag);
         }
-        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
+        boost::thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
 
         // NMPT
+
+        Grabber_ROS grabberSaliency(timing_flag, width, height, ros_input_scope);
         Saliency sal(ros_topic);
         if (saliency_flag) {
-            sal.setupROS(&grabber, grabber.getCamera(), viz_flag, sal_s);
+            sal.setupROS(&grabberSaliency, grabberSaliency.getCamera(), viz_flag, sal_s);
         }
-        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
+        boost::thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
         ros::spin();
     }
@@ -314,21 +317,21 @@ int main(int argc, char *const argv[]) {
         Grabber grabber;
         cout << ">>> Framerate is: " << rate << "\n";
         grabber.setCapture(argc, (const char **) argv, rate, timing_flag, width, height);
-        thread g_t(&Grabber::grabImage, &grabber);
+        boost::thread g_t(&Grabber::grabImage, &grabber);
 
         // DLIB
         Faces fac(ros_topic);
         if (faces_flag) {
             fac.setPath(&grabber, dlib_path, viz_flag, fit_flag);
         }
-        thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
+        boost::thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
 
         // NMPT
         Saliency sal(ros_topic);
         if (saliency_flag) {
             sal.setup(&grabber, grabber.getCamera(), viz_flag, sal_s);
         }
-        thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
+        boost::thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
 
         ros::spin();
     }
