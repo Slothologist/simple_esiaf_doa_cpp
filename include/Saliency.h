@@ -1,4 +1,4 @@
-#pragma once
+#pragma once 
 
 // SELF
 #include "Grabber.h"
@@ -16,7 +16,7 @@ public:
     void getSaliency(bool saliency_flag, bool timing, int throttle);
     void setup(Grabber *grab, int camera, bool _vis, double _sal_sens);
     void setupROS(Grabber_ROS *grab, int camera, bool _vis, double _sal_sens);
-    // void setupXimea(Grabber_XIMEA *grab, int camera, bool _vis);
+    
 protected:
     // NMPT
     BlockTimer bt;
@@ -45,4 +45,13 @@ protected:
     std::vector<double> lqrpt{2, .5};
     // Default: salientSpot{2};
     LQRPointTracker * salientSpot;
+
+private:
+    // Subscriber handling
+    bool has_subscribers;
+    ros::NodeHandle *nh;
+    void connectCb();
+    boost::mutex connect_cb_mutex_;
+
+
 };
