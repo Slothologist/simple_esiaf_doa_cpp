@@ -44,8 +44,8 @@ protected:
 private:
     // Subscriber handling
     bool has_subscribers;
+    ros::SubscriberStatusCallback connect_cb;
     ros::NodeHandle *nh;
-    void connectCb();
     boost::mutex connect_cb_mutex_f_;
-
+    void connectCb();
 };
