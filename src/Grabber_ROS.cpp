@@ -74,9 +74,11 @@ void Grabber_ROS::getImage(ros::Time *target_timestamp, cv::Mat *mat) {
 }
 
 void Grabber_ROS::start() {
+  std::cout << "Subscribing to scope " << scope_ << std::endl;
   image_sub_ = it_.subscribe(scope_, 5, &Grabber_ROS::imageCallback, this);
 }
 
 void Grabber_ROS::stop() {
+  std::cout << "Shutdown for scope " << scope_ << std::endl;
   image_sub_.shutdown();
 }

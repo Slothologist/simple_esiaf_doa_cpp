@@ -210,14 +210,14 @@ void Saliency::getSaliency(bool saliency_flag, bool timing, int throttle) {
 
 void Saliency::connectCb() {
   boost::lock_guard<boost::mutex> lock(connect_cb_mutex_);
-  ROS_INFO_STREAM("pub_f has " << pub_s.getNumSubscribers() << " susbcribers");
+  ROS_INFO_STREAM("pub_saliency has " << pub_s.getNumSubscribers() << " susbcribers");
   has_subscribers = (pub_s.getNumSubscribers() != 0);
   if (!has_subscribers) {
-    ROS_INFO_STREAM("unsubscribing image input topic");
+    ROS_INFO_STREAM("unsubscribing image input topic saliency");
     grabber_ros->stop();
   } else {
     // subscribe input
-    ROS_INFO_STREAM("(re)subscribing image input topic");
+    ROS_INFO_STREAM("(re)subscribing image input topic saliency");
     grabber_ros->start();
   }
 }

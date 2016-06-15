@@ -194,14 +194,14 @@ void Faces::getFaces(bool faces_flag, bool timing, int throttle) {
 
 void Faces::connectCb() {
   boost::lock_guard<boost::mutex> lock(connect_cb_mutex_f_);
-  ROS_INFO_STREAM("pub_f has " << pub_f.getNumSubscribers() << " susbcribers");
+  ROS_INFO_STREAM("pub_faces has " << pub_f.getNumSubscribers() << " susbcribers");
   has_subscribers = (pub_f.getNumSubscribers() != 0);
   if (!has_subscribers) {
-    ROS_INFO_STREAM("unsubscribing image input topic");
+    ROS_INFO_STREAM("unsubscribing image input topic for faces");
     grabber_ros->stop();
   } else {
     // subscribe input
-    ROS_INFO_STREAM("(re)subscribing image input topic");
+    ROS_INFO_STREAM("(re)subscribing image input topic for faces");
     grabber_ros->start();
   }
 }
