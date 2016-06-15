@@ -169,8 +169,11 @@ void Faces::getFaces(bool faces_flag, bool timing, int throttle) {
         }
         if (people_msg.people.size() > 0) {
             people_msg.header = h;
-            pub_f.publish(people_msg);
         }
+
+        // TODO revert this, this is just for the stupid Floka
+        pub_f.publish(people_msg);
+
 
         // Display it all on the screen
         if (viz) {
