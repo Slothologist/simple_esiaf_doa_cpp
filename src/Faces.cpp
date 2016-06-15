@@ -23,6 +23,7 @@ Faces::Faces(std::string topic) {
     ros::SubscriberStatusCallback connect_cb = boost::bind(&Faces::connectCb, this);
     boost::lock_guard<boost::mutex> lock(connect_cb_mutex_f_);
     this->pub_f = n.advertise<people_msgs::People>(topic+"/faces", 10, connect_cb, connect_cb);
+    std::cout << "Faces detector successfully initialized." << stD::endl;
 }
 
 Faces::~Faces() { }
