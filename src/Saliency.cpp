@@ -22,7 +22,7 @@ Saliency::Saliency(std::string topic) {
 
     boost::lock_guard<boost::mutex> lock(connect_cb_mutex_);
     pub_s = n.advertise<geometry_msgs::PointStamped>(topic+"/saliency", 10, connect_cb, connect_cb);
-    std::cout << "Saliency detector successfully initialized." << stD::endl;
+    std::cout << "Saliency detector successfully initialized." << std::endl;
 }
 
 Saliency::~Saliency() {}
