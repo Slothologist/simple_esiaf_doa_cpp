@@ -79,6 +79,6 @@ void Grabber_ROS::start() {
 }
 
 void Grabber_ROS::stop() {
-  std::cout << ">> Shutdown for " << scope_ << std::endl;
+  std::cout << ">>> Shutdown for " << scope_ << std::endl;
   image_sub_.shutdown();
 }
