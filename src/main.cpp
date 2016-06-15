@@ -291,23 +291,19 @@ int main(int argc, char *const argv[]) {
         Grabber_ROS grabberFaces(timing_flag, width, height, ros_input_scope);
 
         // DLIB
-        std::cout << "init faces thread" << std::endl;
         Faces fac(ros_topic);
         if (faces_flag) {
             fac.setPathROS(&grabberFaces, dlib_path, viz_flag, fit_flag);
         }
         boost::thread f_t(&Faces::getFaces, &fac, faces_flag, timing_flag, throttle_hard);
-        std::cout << "init faces thread...done" << std::endl;
-        // NMPT
 
-        std::cout << "init saliency thread" << std::endl;
+        // NMPT
         Grabber_ROS grabberSaliency(timing_flag, width, height, ros_input_scope);
         Saliency sal(ros_topic);
         if (saliency_flag) {
             sal.setupROS(&grabberSaliency, grabberSaliency.getCamera(), viz_flag, sal_s);
         }
         boost::thread s_t(&Saliency::getSaliency, &sal, saliency_flag, timing_flag, throttle_hard);
-        std::cout << "init saliency thread ... done" << std::endl;
 
         ros::spin();
     }
