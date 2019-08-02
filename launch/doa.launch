@@ -1,0 +1,4 @@
+<launch>
+    <arg name="path_to_config" />
+<node name="simple_doa_cpp" pkg="simple_esiaf_doa_cpp" type="ssloc" output="screen" args="$(arg path_to_config)" />
+</launch>

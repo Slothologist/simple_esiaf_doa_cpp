@@ -12,10 +12,15 @@
 //
 //============================================================================
 
+// esiaf include
+#include <esiaf_ros/esiaf_ros.h>
+
+// boost config read imports
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
 // ROS
 #include "ros/ros.h"
-#include "geometry_msgs/Point.h"
-#include "geometry_msgs/PointStamped.h"
 
 // STD
 #include <iostream>
@@ -27,43 +32,14 @@
 #include <string>
 
 // DEFINES
-#define SAMPLE_TYPE short
+#define SAMPLE_TYPE int16_t
 #define SAMPLE_TYPE_ALSA SND_PCM_FORMAT_S16_LE
 
 using namespace std;
-using namespace rsb;
 
-/* ROS Class to send Messages */
+boost::function<void(const std::vector<int8_t> &, const esiaf_ros::RecordingTimeStamps &)> simple_esiaf_callback;
+void esiaf_handler(const std::vector<int8_t> &signal, const esiaf_ros::RecordingTimeStamps & timeStamps){ simple_esiaf_callback(signal, timeStamps); };
 
-class ROSComm {
-
-private:
-    ros::NodeHandle n;
-    ros::Publisher pub_s;
-public:
-    ROSComm() {}
-    ~ROSComm() {}
-
-    void init_ros(int argc, char *const argv[]){
-        pub_s = n.advertise<geometry_msgs::PointStamped>(argv[2], 2);
-    }
-
-    void send_ssloc(float _angle, float _default_elevation, float _sound_level) {
-        std_msgs::Header h;
-        h.stamp = ros::Time::now();
-        h.frame_id = "0";
-
-        geometry_msgs::PointStamped ps;
-        geometry_msgs::Point p;
-        p.x = _angle;
-        p.y = _default_elevation;
-        p.z = _sound_level;
-        ps.point = p;
-        ps.header = h;
-
-        pub_s.publish(ps);
-    }
-};
 
 /**
  * An utility class to compute the running average of a signal
@@ -113,20 +89,6 @@ class SoundSourceLoc {
     int _nbSamplesMaxDiff;
 
     /**
-     * Buffer size on which we will try to locate sound. <br/>
-     * This is a number of samples, and depends on sample rate, and speed of
-     * sound loc change we want to detect. Lower values mean compute sound loc
-     * often, but accuracy is quite low as we compute on a very small slice of
-     * sound. <br/>
-     * Empirically, I found that computing on long sounds is better, here 4096
-     * samples at 44 KHz sampling rate means about one second of sound => we
-     * reevaluate sound loc every second. <br/>
-     * Notice that the larger the value, the most computation we do, as we time
-     * shift on the whole buffer.
-     */
-    static const int _bufferSize = 4096;
-
-    /**
      * Take a point for sound loc is level > 110% of mean level. <br/>
      * This allows to compute sound loc only for "meaningful" sounds, not
      * background noise.
@@ -156,37 +118,15 @@ class SoundSourceLoc {
     /** An utility to compute the running average of sound power */
     RunningAverage* _averageSoundLevel;
 
-    /** ALSA sound input handle */
-    snd_pcm_t* _capture_handle;
-
-    /** sound samples input buffer */
-    SAMPLE_TYPE _rightBuffer[_bufferSize];
-    SAMPLE_TYPE _leftBuffer[_bufferSize];
-
-    // ROS STUFF
-    ROSComm* rs;
-
-        
-    Informer<string>::Ptr informer;
-
 
 public:
-    SoundSourceLoc(int argc, char* argv[]) {
-
-        ros::init(argc, (char **) argv, "robotgazetoolsaudio");
-        rs = new ROSComm();
-        rs->init_ros(argc, argv);
-        Factory& factory = getFactory();
-        informer = factory.createInformer<string> ("/speechrec/sslog");
+    SoundSourceLoc(float distance_mics, float audio_activation_level) {
 
 
         _averageSoundLevel = new RunningAverage(50);
         _soundSamplingRate = 44100;
-        _distanceBetweenMicrophones = atof(argv[3]);
-        _minLevelFactorForValidLoc = atof(argv[4]);
-        if (argc > 5) {
-            _defaultElevationLevel = atof(argv[5]);
-        }
+        _distanceBetweenMicrophones = distance_mics;
+        _minLevelFactorForValidLoc = audio_activation_level;
         _nbSamplesMaxDiff = (_distanceBetweenMicrophones/_soundSpeed)*_soundSamplingRate+1;
       
         cout << "Audio Activation Level --> " << _minLevelFactorForValidLoc << endl;
@@ -195,90 +135,13 @@ public:
         cout << "Max Sample Diff --> " << _nbSamplesMaxDiff << endl;
         cout << "Default Azimuth Level --> " << _defaultElevationLevel << endl;
 
-        // sampling: 2 chanels, 44 KHz, 16 bits.
-        int err;
-        snd_pcm_hw_params_t* hw_params;
-
-        // ideally use "hw:0,0" for embedded, to limit processing. But check if card support our needs...
-        const char* device = argv[1];
-
-        if ((err = snd_pcm_open(&_capture_handle, device,
-                SND_PCM_STREAM_CAPTURE, 0)) < 0) {
-            fprintf(stderr, "cannot open audio device %s (%s)\n", device,
-                    snd_strerror(err));
-            exit(1);
-        }
-
-        if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
-            fprintf(stderr,
-                    "cannot allocate hardware parameter structure (%s)\n",
-                    snd_strerror(err));
-            exit(1);
-        }
-
-        if ((err = snd_pcm_hw_params_any(_capture_handle, hw_params)) < 0) {
-            fprintf(stderr,
-                    "cannot initialize hardware parameter structure (%s)\n",
-                    snd_strerror(err));
-            exit(1);
-        }
-
-        if ((err = snd_pcm_hw_params_set_access(_capture_handle, hw_params,
-                SND_PCM_ACCESS_RW_NONINTERLEAVED)) < 0) {
-            fprintf(stderr, "cannot set access type (%s)\n", snd_strerror(err));
-            exit(1);
-        }
-
-        if ((err = snd_pcm_hw_params_set_format(_capture_handle, hw_params,
-                SAMPLE_TYPE_ALSA)) < 0) {
-            fprintf(stderr, "cannot set sample format (%s)\n",
-                    snd_strerror(err));
-            exit(1);
-        }
-
-        if ((err = snd_pcm_hw_params_set_rate_near(_capture_handle, hw_params,
-                &_soundSamplingRate, 0)) < 0) {
-            fprintf(stderr, "cannot set sample rate (%s)\n", snd_strerror(err));
-            exit(1);
-        }
-
-        if ((err = snd_pcm_hw_params_set_channels(_capture_handle, hw_params, 2))
-                < 0) {
-            fprintf(stderr, "cannot set channel count (%s)\n",
-                    snd_strerror(err));
-            exit(1);
-        }
-
-        if ((err = snd_pcm_hw_params(_capture_handle, hw_params)) < 0) {
-            fprintf(stderr, "cannot set parameters (%s)\n", snd_strerror(err));
-            exit(1);
-        }
-
-        snd_pcm_hw_params_free(hw_params);
-
-        if ((err = snd_pcm_prepare(_capture_handle)) < 0) {
-            fprintf(stderr, "cannot prepare audio interface for use (%s)\n",
-                    snd_strerror(err));
-            exit(1);
-        }
     }
 
     /** Clean exit */
     ~SoundSourceLoc() {
-        snd_pcm_close(_capture_handle);
         delete _averageSoundLevel;
     }
 
-    /**
-     * Main loop: read a buffer, compute sound source localization, iterate.
-     */
-    void run() {
-        while (true) {
-            processNextSoundBlock();
-        }
-    }
-
-private:
     /**
      * This is the core of the sound source localization: it takes the
      * right/left sampled sounds, and compute their differences while delaying
@@ -287,17 +150,8 @@ private:
      * between the right/left sounds, from which we can deduce the sound source
      * localization
      */
-    void processNextSoundBlock() {
-        SAMPLE_TYPE* bufs[2];
-        bufs[0] = _rightBuffer;
-        bufs[1] = _leftBuffer;
-        int err;
-        if ((err = snd_pcm_readn(_capture_handle, (void**) bufs, _bufferSize))
-                != _bufferSize) {
-            fprintf(stderr, "read from audio interface failed (%s)\n",
-                    snd_strerror(err));
-            exit(1);
-        }
+    float processNextSoundBlock(std::vector<SAMPLE_TYPE> _leftBuffer, std::vector<SAMPLE_TYPE> _rightBuffer) {
+        size_t _bufferSize = _leftBuffer.size();
 
         // compute the sound level (i.e. "loudness" of the sound):
         SAMPLE_TYPE level = computeLevel(_rightBuffer, _leftBuffer);
@@ -342,14 +196,13 @@ private:
             float degree = (angle*180/M_PI)+90.0f;
 
             if ( std::isnan(degree) == false ) {
-                cout << degree << " (" << degree-90.0f << ") "<< " <--- Degree " <<"| Relative Audio Level ---> " << relativeLevel << endl;
-                rs->send_ssloc(degree, _defaultElevationLevel, relativeLevel);
-                Informer<string>::DataPtr d(new string(std::to_string(degree)));
-                informer->publish(d);
+                return degree;
             }
         }
+        return 0.0;
     }
 
+private:
     /**
      * Compute average sound level (i.e. power) for left/right channels.
      *
@@ -360,7 +213,8 @@ private:
      * simplify and avoid the multiplications by just taking the mean of
      * absolute values?
      */
-    SAMPLE_TYPE computeLevel(SAMPLE_TYPE right[], SAMPLE_TYPE left[]) {
+    SAMPLE_TYPE computeLevel(std::vector<SAMPLE_TYPE> right, std::vector<SAMPLE_TYPE> left) {
+        size_t _bufferSize = right.size();
         float level = 0;
         for (int i = 0; i < _bufferSize; i++) {
             float s = (left[i] + right[i]) / 2;
@@ -375,13 +229,83 @@ private:
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 5) {
-        cout << "You need to provide the following arguments: ä9 OUTTOPIC MIC_DISTANCE AUDIO_ACTIVATION_LEVEL [DEFAULT_ELEVATION optional]";
-        cout << "Example: plughw:0.0 /robotgazetools/audio 0.5 2.5 [0.0]";
-    }
+    std::string config_file = argv[1];
 
-    SoundSourceLoc soundLoc(argc, argv);
-    soundLoc.run();
+    boost::property_tree::ptree pt;
+    boost::property_tree::ini_parser::read_ini(config_file, pt);
+
+    // ros initialisation
+    ros::init(argc, argv, pt.get<std::string>("node_name"));
+    ros::NodeHandle n;
+
+    // some parameters for esiaf
+    std::string input_topic = pt.get<std::string>("input_topic");
+    std::string output_topic = pt.get<std::string>("output_topic");
+
+    float mic_x_distance = pt.get<float>("mic_x_distance");
+    float mic_y_distance = pt.get<float>("mic_y_distance");
+
+    float audio_activation_level = pt.get<float>("audio_activation_level");
+
+    int first_x_channel = pt.get<int>("first_x_channel");
+    int second_x_channel = pt.get<int>("second_x_channel");
+    int first_y_channel = pt.get<int>("first_y_channel");
+    int second_y_channel = pt.get<int>("second_y_channel");
+
+    SoundSourceLoc soundLocX(mic_x_distance, audio_activation_level);
+    SoundSourceLoc soundLocY(mic_y_distance, audio_activation_level);
+
+    // prepare esiaf
+
+    ROS_INFO("starting esiaf initialisation...");
+
+    // initialise esiaf
+    esiaf_ros::Esiaf_Handler handler(&n, esiaf_ros::NodeDesignation::SSL);
+    ROS_INFO("creating esiaf output topic...");
+
+    //create format for output topic
+    esiaf_ros::EsiafAudioTopicInfo topicInfo;
+
+    esiaf_ros::EsiafAudioFormat allowedFormat;
+    allowedFormat.rate = esiaf_ros::Rate::RATE_44100;
+    allowedFormat.channels = 4;
+    allowedFormat.bitrate = esiaf_ros::Bitrate::BIT_INT_16_SIGNED;
+    allowedFormat.endian = esiaf_ros::Endian::LittleEndian;
+
+    topicInfo.allowedFormat = allowedFormat;
+    topicInfo.topic = output_topic;
+
+    // notify esiaf about the output topic
+    ROS_INFO("adding esiaf output topic...");
+    handler.add_output_topic(topicInfo);
+
+
+    // notify esiaf about the output topic
+    ROS_INFO("adding input topic....");
+
+
+    // here we add a method to transfer incoming audio to the audio player
+    simple_esiaf_callback = [&](const std::vector<int8_t> &signal,
+                                const esiaf_ros::RecordingTimeStamps &timeStamps) {
+
+        const int8_t* buf8 = signal.data();
+        int16_t* buf16 = (int16_t*) buf8;
+
+        //float degreeX = soundLocX.processNextSoundBlock( );
+        //float degreeY = soundLocY.processNextSoundBlock( );
+
+    };
+
+    topicInfo.topic = input_topic;
+    handler.add_input_topic(topicInfo, esiaf_handler);
+
+    // start esiaf
+    ROS_INFO("starting esiaf...");
+    handler.start_esiaf();
+
+
+
+
     exit(0);
 
 }
