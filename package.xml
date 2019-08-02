@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>simple_robot_gaze_tools</name>
+  <name>simple_esiaf_doa_cpp</name>
   <version>0.0.1</version>
-  <description>Input for the simple robot gaze tools (vision and audio)</description>
+  <description>Input for the simple robot gaze tools (audio)</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <maintainer email="flier@techfak.uni-bielefeld.de">Florian Lier</maintainer>
@@ -15,7 +15,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <url type="website">https://github.com/CentralLabFacilities/simple_robot_gaze_tools</url> -->
+  <url type="website">https://github.com/Slothologist/simple_esiaf_doa_cpp</url> -->
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
   <!-- Authors do not have to be maintianers, but could be -->
@@ -26,22 +26,12 @@
   <!-- Dependencies can be catkin packages or system dependencies -->
   <!-- Examples: -->
   <!-- Use build_depend for packages you need at compile time: -->
-  <build_depend>message_generation</build_depend>
-  <build_depend>image_transport</build_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>actionlib</build_depend>
-  <build_depend>actionlib_msgs</build_depend>
-  <!-- Use buildtool_depend for build tool packages: -->
-  <!--   <buildtool_depend>catkin</buildtool_depend> -->
-  <!-- Use run_depend for packages you need at runtime: -->
-  <run_depend>message_runtime</run_depend>
-  <!-- Use test_depend for packages you need only for testing: -->
-  <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>esiaf_ros</build_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>image_transport</run_depend>
+  <run_depend>package</run_depend>
+  <run_depend>esiaf_ros</run_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- You can specify that this package is a metapackage here: -->

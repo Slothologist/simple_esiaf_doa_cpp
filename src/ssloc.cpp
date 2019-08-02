@@ -17,11 +17,6 @@
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/PointStamped.h"
 
-#include <rsb/Informer.h>
-#include <rsb/Factory.h>
-#include <rsb/converter/Repository.h>
-#include <rsb/converter/ProtocolBufferConverter.h>
-
 // STD
 #include <iostream>
 #include <stdio.h>
@@ -29,7 +24,6 @@
 #include <math.h>
 #include <cmath>
 #include <limits.h>
-#include <alsa/asoundlib.h>
 #include <string>
 
 // DEFINES
